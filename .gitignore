@@ -1,0 +1,27 @@
+# Lean 4 / Mathlib caches
+.lake/
+build/
+*.olean
+*.ilean
+*.trace
+
+# Julia caches & artifacts
+Manifest.toml
+*.ji
+*.cov
+
+# Python & virtualenvs
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Experiment outputs & binary media (store in CI artifacts / Releases only)
+telemetry_*.json
+results/*.json
+*.png
+*.pdf
+*.mp3
+*.npy
+*.npz
