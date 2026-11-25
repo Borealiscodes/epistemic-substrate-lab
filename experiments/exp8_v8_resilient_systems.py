@@ -1,20 +1,7 @@
 #!/usr/bin/env python3
-"""
-Experiment H (exp8_v8_resilient_systems.py):
-Benchmarks all three v8 resilience modules + cross-verifies against the compiled
-zero-crate Rust gate (rust/spherepop_gate):
-  1. In-flight PyTorch Self-Healing Forward Firewall (1-patch repair -> COLLAPSE;
-     2-patch Byzantine tampering -> REFUSE).
-  2. Multi-Agent Sheaf Consensus (1 drifting agent healed -> COLLAPSE; phantom
-     citation -> REFUSE:UNESTABLISHED; 2-agent Byzantine drift -> REFUSE).
-  3. Mixed-Precision Quantization Geometry Repair (Uniform INT8 holonomy 2.0000
-     repaired by exempting L_0 and L_22->L_23 unembedding twist).
-"""
-
 import json
 import os
 import subprocess
-import numpy as np
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -68,7 +55,6 @@ def main() -> None:
     }
     established_hashes = {canonical_q16_sha256(traj_dual[mid_idx])}
 
-    # --- 1. In-Flight Self-Healing Forward Firewall ---
     fw_single_healed = run_self_healing_forward_pass(
         model,
         tokenizer,
@@ -90,7 +76,6 @@ def main() -> None:
         cite_established_hash=True,
     )
 
-    # --- 2. Multi-Agent Sheaf Consensus (6 Agents) ---
     h_swarm = traj_dual[mid_idx]
     swarm_patches = calibrated_covers[mid_idx]
     swarm_hash = canonical_q16_sha256(h_swarm)
@@ -99,25 +84,24 @@ def main() -> None:
     ma_single_healed = run_multi_agent_consensus(
         "single_agent_drift_repaired", h_swarm, swarm_patches, swarm_established, drifting_agent_indices=(0,)
     )
+    phantom_citations = list(("deadbeef" * 8, swarm_hash, swarm_hash, swarm_hash, swarm_hash, swarm_hash))
     ma_unestablished = run_multi_agent_consensus(
         "phantom_hash_citation",
         h_swarm,
         swarm_patches,
         swarm_established,
         drifting_agent_indices=(0,),
-        agent_cited_hashes=["deadbeef" * 8] + [swarm_hash] * 5,
+        agent_cited_hashes=phantom_citations,
     )
     ma_byzantine = run_multi_agent_consensus(
         "two_agent_byzantine_drift", h_swarm, swarm_patches, swarm_established, drifting_agent_indices=(0, 3)
     )
 
-    # --- 3. Mixed-Precision Quantization Geometry Repair ---
     P_sub = next(iter(build_calibrated_multi_atom_patches(
         [traj_clean[mid_idx], traj_bridge[mid_idx]], k=k, n_patches=1, seed=77
     )))
     quant_repair = run_mixed_precision_quantization_repair(model, tokenizer, prompt_clean, P_sub)
 
-    # --- 4. Differential Check Against Zero-Crate Rust Binary ---
     rust_checks = {
         "single_healed": query_rust_gate(1, True, True, True),
         "phantom_hash": query_rust_gate(1, False, True, True),
@@ -137,17 +121,18 @@ def main() -> None:
             "single_agent_drift_disposition": ma_single_healed["terminal_disposition"],
             "single_agent_summary": ma_single_healed["events"][-1],
             "unestablished_citation_disposition": ma_unestablished["terminal_disposition"],
+            "unestablished_reason": ma_unestablished["refusal_reason"],
+            "byzantine_2agent_disposition": ma_byzantine["terminal_disposition"],
+            "byzantine_reason": ma_byzantine["refusal_reason"],
+        },
+        "module3_mixed_precision_quantization_repair": {
+            "disposition": quant_repair["terminal_disposition"],
+            "summary": quant_repair["events"][-1],
+        },
+        "rust_zero_crate_differential_gate": rust_checks,
+    }
+    print(json.dumps(report, indent=2))
 
-"unestablished_reason": ma_unestablished["refusal_reason"],
-"byzantine_2agent_disposition": ma_byzantine["terminal_disposition"],
-"byzantine_reason": ma_byzantine["refusal_reason"],
-},
-"module3_mixed_precision_quantization_repair": {
-"disposition": quant_repair["terminal_disposition"],
-"summary": quant_repair["events"][-1],
-},
-"rust_zero_crate_differential_gate": rust_checks,
-}
-print(json.dumps(report, indent=2))
-if name == "main":
-main()
+
+if __name__ == "__main__":
+    main()
