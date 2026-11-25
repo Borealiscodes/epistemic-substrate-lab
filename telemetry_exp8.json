@@ -1,0 +1,54 @@
+{
+  "experiment": "Experiment_H_V8_Resilient_SelfHealing_and_Consensus",
+  "model_id": "Qwen/Qwen2.5-0.5B",
+  "module1_self_healing_firewall": {
+    "single_patch_tamper_disposition": "REFUSE",
+    "single_patch_summary": {
+      "op": "REFUSE",
+      "scope": "v8_self_healing_firewall_patches_1",
+      "reason": "REPAIR_COBOUNDARY_OBSTRUCTION",
+      "summary": {
+        "healed": true,
+        "corrupted_count": 1,
+        "post_repair_norm": 4.576501591373621
+      }
+    },
+    "byzantine_2patch_disposition": "REFUSE",
+    "byzantine_2patch_reason": "BYZANTINE_MULTI_PATCH_OBSTRUCTION"
+  },
+  "module2_multi_agent_consensus": {
+    "single_agent_drift_disposition": "COLLAPSE",
+    "single_agent_summary": {
+      "op": "COLLAPSE",
+      "scope": "v8_multi_agent_sheaf_single_agent_drift_repaired",
+      "summary": {
+        "realigned_agent": 0,
+        "pre_repair_norm": 5.536141928151828,
+        "post_repair_norm": 1.0380684959436175e-14
+      }
+    },
+    "unestablished_citation_disposition": "REFUSE",
+    "unestablished_reason": "UNESTABLISHED",
+    "byzantine_2agent_disposition": "REFUSE",
+    "byzantine_reason": "BYZANTINE_MULTI_PATCH_OBSTRUCTION"
+  },
+  "module3_mixed_precision_quantization_repair": {
+    "disposition": "REFUSE",
+    "summary": {
+      "op": "REFUSE",
+      "scope": "v8_mixed_precision_quantization_repair",
+      "reason": "QUANTIZATION_GEOMETRY_DISTORTION",
+      "summary": {
+        "quant_repair_valid": false,
+        "uniform_int8_depth_holonomy": 0.6180993356934942,
+        "mixed_precision_depth_holonomy": 0.6588258683248803,
+        "mixed_precision_twist_delta": 0.13633630766405247
+      }
+    }
+  },
+  "rust_zero_crate_differential_gate": {
+    "single_healed": "COLLAPSE",
+    "phantom_hash": "REFUSE:UNESTABLISHED",
+    "byzantine_2patch": "REFUSE:BYZANTINE_MULTI_PATCH_OBSTRUCTION"
+  }
+}
