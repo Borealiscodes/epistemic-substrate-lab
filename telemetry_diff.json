@@ -1,0 +1,5 @@
+{
+  "differential_trials": 100,
+  "max_julia_python_discrepancy": 4.440892098500626e-16,
+  "differential_gate_passed": true
+}
