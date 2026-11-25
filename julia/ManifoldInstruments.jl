@@ -63,7 +63,7 @@ end
 """Constructs block Sheaf Laplacian L_F = delta0' * delta0 for a cyclic cover."""
 function sheaf_laplacian_spectrum(patches::Vector{Matrix{Float64}})
     m = length(patches)
-    _, k = size(patches)
+    k = size(first(patches), 2)
     delta0 = zeros(Float64, m * k, m * k)
     for i in 1:m
         j = mod1(i + 1, m)
@@ -111,10 +111,9 @@ function verify_zero_allocation()
     patches = [build_isometric_basis(64, 8; seed=10 + i) for i in 1:4]
     spec = sheaf_laplacian_spectrum(patches)
 
-    # Verify edge localization pinpoints perturbed patch 1 -> edge (1,2) and (4,1)
     x_test = randn(MersenneTwister(99), 64)
     secs = [P_i' * x_test for P_i in patches]
-    secs .+= 0.5 .* randn(MersenneTwister(100), 8)
+    first(secs) .+= 0.5 .* randn(MersenneTwister(100), 8)
     loc = sheaf_edge_obstruction_profile(patches, secs)
 
     println("JULIA_HOLONOMY_ALLOC_BYTES=", allocs_hol)
