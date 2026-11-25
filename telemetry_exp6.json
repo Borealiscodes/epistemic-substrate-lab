@@ -1,0 +1,63 @@
+{
+  "experiment": "Experiment_F_V6_Four_Track_Applications_Suite",
+  "model_id": "Qwen/Qwen2.5-0.5B",
+  "num_layers": 24,
+  "track1_steering_firewall": {
+    "clean_run_disposition": "COLLAPSE",
+    "tampered_L12_disposition": "REFUSE",
+    "tampered_L12_summary": {
+      "op": "REFUSE",
+      "scope": "track1_steering_firewall_tamper_12",
+      "reason": "TRACK1_RUNTIME_STEERING_OBSTRUCTION",
+      "summary": {
+        "firewall_layers_clean": false,
+        "halted_at_layer": 12,
+        "worst_seam": "(5, 0)"
+      }
+    }
+  },
+  "track2_edge_quantization_auditor": {
+    "disposition": "REFUSE",
+    "summary": {
+      "op": "REFUSE",
+      "scope": "track2_edge_quantization_audit",
+      "reason": "TRACK2_QUANTIZATION_GEOMETRY_DISTORTION",
+      "summary": {
+        "quant_geometry_valid": false,
+        "closed_depth_holonomy": 2.000000000000001,
+        "terminal_twist_delta_rad": 0.10938426045285055,
+        "aitchison_clr_logit_drift": 572.1910244310315
+      }
+    }
+  },
+  "track3_ci_provenance_gate": {
+    "repo_head_disposition": "COLLAPSE",
+    "unendorsed_ai_trailer_disposition": "REFUSE",
+    "unendorsed_ai_reason": "TRACK3_UNENDORSED_ASYMMETRIC_INSCRIPTION"
+  },
+  "track4_unembedding_calibration_monitor": {
+    "normal_prompt_disposition": "COLLAPSE",
+    "normal_summary": {
+      "op": "COLLAPSE",
+      "scope": "track4_unembedding_calibration_normal_prompt",
+      "summary": {
+        "unembedding_calibrated": true,
+        "terminal_twist_rad": 1.247435198344012,
+        "exact_aitchison_clr_norm": 1229.6257379043543,
+        "softmax_max_prob": 0.15977665658381282
+      }
+    },
+    "radial_50x_blowup_disposition": "REFUSE",
+    "radial_50x_summary": {
+      "op": "REFUSE",
+      "scope": "track4_unembedding_calibration_radial_simplex_blowup_50x",
+      "reason": "TRACK4_UNEMBEDDING_CALIBRATION_ANOMALY",
+      "summary": {
+        "unembedding_calibrated": false,
+        "terminal_twist_rad": 1.247435198344012,
+        "exact_aitchison_clr_norm": 61481.286895217716,
+        "softmax_max_prob": 0.9942516860906097
+      }
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "experiment": "Experiment_A_Metric_and_Kernel_Audit",
+  "q16_determinism": {
+    "q16_initial": [
+      49152,
+      -16384
+    ],
+    "q16_after_4_rotations": [
+      49152,
+      -16384
+    ],
+    "bit_exact_reversibility": true
+  },
+  "a72_layer1_svd_audit": {
+    "sigma_min": 1.1499999999999992,
+    "sigma_max": 1.1500000000000004,
+    "condition_number": 1.0000000000000009,
+    "destroyed_dimensions": 0,
+    "admissible_for_inference": true
+  },
+  "simplex_vs_aitchison": {
+    "kl_direct_02": 2.2485642627649476,
+    "kl_sum_01_12": 1.9550781238254156,
+    "kl_violates_triangle_inequality": true,
+    "aitchison_direct_02": 4.620335485654694,
+    "aitchison_sum_01_12": 5.388329056027934,
+    "aitchison_satisfies_triangle_inequality": true,
+    "radial_simplex_collapse_test": [
+      {
+        "radial_scale_c": 1.0,
+        "euclidean_simplex_dist": 0.014322434675952763,
+        "aitchison_clr_dist": 0.043301270189222064
+      },
+      {
+        "radial_scale_c": 10.0,
+        "euclidean_simplex_dist": 0.12234613086867346,
+        "aitchison_clr_dist": 0.4330127018922193
+      },
+      {
+        "radial_scale_c": 50.0,
+        "euclidean_simplex_dist": 0.008683373502737393,
+        "aitchison_clr_dist": 2.161511492647924
+      }
+    ]
+  },
+  "causa_qi_kernel_collapse": {
+    "personas_distinct": true,
+    "causa_interchange_invariant": true,
+    "collapsed_1x1_re": "2017/24",
+    "collapsed_1x1_im": "55/4"
+  }
+}
