@@ -187,7 +187,7 @@ theorem layer_chain_collapses_iff_all_true (layers : List Bool) :
   split
   · rename_i h
     rw [List.all_eq_true] at h
-    exact ⟨fun _ b hb => of_decide_eq_true (h b hb), fun _ => rfl⟩
+    exact ⟨fun _ b hb => h b hb, fun _ => rfl⟩
   · rename_i h
     constructor
     · intro h_eq; cases h_eq
@@ -196,6 +196,6 @@ theorem layer_chain_collapses_iff_all_true (layers : List Bool) :
       apply h
       rw [List.all_eq_true]
       intro b hb
-      exact decide_eq_true (hall b hb)
+      exact hall b hb
 
 end V5DepthChainGate
