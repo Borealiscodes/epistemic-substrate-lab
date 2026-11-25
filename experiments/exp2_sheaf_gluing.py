@@ -24,7 +24,8 @@ def run_superposition_sheaf_test(D: int = 256, F: int = 2048, n_patches: int = 6
 
     local_sections = [P.T @ x_ambient for P in patches]
     local_sections_perturbed = [s.copy() for s in local_sections]
-    local_sections_perturbed[0] = local_sections_perturbed[0] + 0.5 * rng.standard_normal(k)
+    first = 0
+    local_sections_perturbed[first] = local_sections_perturbed[first] + 0.5 * rng.standard_normal(k)
 
     def coboundary_energy(sections: list[np.ndarray]) -> float:
         sq_err = 0.0
