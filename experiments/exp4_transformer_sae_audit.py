@@ -55,11 +55,7 @@ def extract_live_transformer_states(model_id: str = "Qwen/Qwen2.5-0.5B") -> dict
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
     tokenizer = AutoTokenizer.from_pretrained(model_id)
-    model = AutoModelForCausalLM.from_pretrained(
-        model_id,
-        torch_dtype=torch.float32,
-        output_hidden_states=True,
-    )
+    model = AutoModelForCausalLM.from_pretrained(model_id, dtype=torch.float32)
     model.eval()
 
     prompts = [
@@ -75,14 +71,14 @@ def extract_live_transformer_states(model_id: str = "Qwen/Qwen2.5-0.5B") -> dict
     with torch.no_grad():
         for text in prompts:
             inputs = tokenizer(text, return_tensors="pt")
-            out = model(**inputs)
+            out = model(**inputs, output_hidden_states=True)
             h_mid = out.hidden_states[mid_layer][0, -1, :].cpu().numpy().astype(np.float64)
             z_last = out.logits[0, -1, :].cpu().numpy().astype(np.float64)
             residuals.append(h_mid)
             logits_list.append(z_last)
 
-    first_res = residuals
-    first_log = logits_list
+    first_res = next(iter(residuals))
+    first_log = next(iter(logits_list))
     return {
         "source": "live_open_weight_transformer",
         "model_id": model_id,
@@ -128,8 +124,8 @@ def evaluate_cover_with_edge_localization(
     perturb_patch0: bool,
 ) -> dict:
     n_patches = len(patches)
-    first_patch = patches
-    k = int(first_patch.shape)
+    first_patch = next(iter(patches))
+    k = int(first_patch.shape[1])
     rng = np.random.default_rng(404)
 
     sections = []
