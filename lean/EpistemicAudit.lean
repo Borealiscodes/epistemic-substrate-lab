@@ -303,3 +303,60 @@ theorem valid_established_repair_collapses
   simp [evaluateRepair, h_est, h_auth, h_bud, h_cob]
 
 end V7EstablishedRepairGate
+
+namespace V8SelfHealingAndConsensusGate
+
+open SpherepopSheafBridge
+
+/-- Operational state for v8 self-healing runtime hooks and multi-agent sheaf consensus:
+    - corruptedPatchCount: number of patches/agents violating local overlap consistency
+    - targetEstablished: whether the repair cites an established Q16.16 hash in H
+    - burdenWithinBudget: whether cumulative repair complexity is within scope budget
+    - postRepairCoboundaryZero: whether harmonic boundary solve restored ||delta^0 s||_2 <= tol -/
+structure V8SelfHealingState where
+  corruptedPatchCount : Nat
+  targetEstablished : Bool
+  burdenWithinBudget : Bool
+  postRepairCoboundaryZero : Bool
+  deriving DecidableEq, Repr
+
+/-- Single-patch faults (corruptedPatchCount = 1) are eligible for harmonic repair
+    provided targetEstablished, burdenWithinBudget, and postRepairCoboundaryZero hold.
+    Multi-patch / Byzantine faults (corruptedPatchCount >= 2) are barred from silent
+    interpolation and force Spherepop REFUSE. -/
+def evaluateSelfHealingPass (s : V8SelfHealingState) : Disposition :=
+  if s.corruptedPatchCount == 0 then
+    Disposition.collapsed
+  else if s.corruptedPatchCount > 1 then
+    Disposition.refused "BYZANTINE_MULTI_PATCH_OBSTRUCTION"
+  else if !s.targetEstablished then
+    Disposition.refused "UNESTABLISHED"
+  else if !s.burdenWithinBudget then
+    Disposition.refused "MAINTENANCE_BUDGET_EXCEEDED"
+  else if !s.postRepairCoboundaryZero then
+    Disposition.refused "REPAIR_COBOUNDARY_OBSTRUCTION"
+  else
+    Disposition.collapsed
+
+/-- Theorem 1 (Byzantine Fault Guard): Any perturbation corrupting 2 or more patches/agents
+    cannot be silently healed and deterministically forces REFUSE. -/
+theorem multi_patch_corruption_forces_refusal
+    (s : V8SelfHealingState) (h_byz : s.corruptedPatchCount > 1) :
+    evaluateSelfHealingPass s = Disposition.refused "BYZANTINE_MULTI_PATCH_OBSTRUCTION" := by
+  have h_ne0 : (s.corruptedPatchCount == 0) = false := by
+    simp [Nat.ne_of_gt (Nat.lt_trans Nat.zero_lt_one h_byz)]
+  have h_gt1 : (s.corruptedPatchCount > 1) = true := decide_eq_true h_byz
+  simp [evaluateSelfHealingPass, h_ne0, h_gt1]
+
+/-- Theorem 2 (Single-Fault Harmonic Recovery): A single-patch fault with an established
+    target hash, valid budget, and machine-zero post-repair coboundary yields COLLAPSE. -/
+theorem single_patch_established_repair_collapses
+    (s : V8SelfHealingState)
+    (h_one : s.corruptedPatchCount = 1)
+    (h_est : s.targetEstablished = true)
+    (h_bud : s.burdenWithinBudget = true)
+    (h_cob : s.postRepairCoboundaryZero = true) :
+    evaluateSelfHealingPass s = Disposition.collapsed := by
+  simp [evaluateSelfHealingPass, h_one, h_est, h_bud, h_cob]
+
+end V8SelfHealingAndConsensusGate
