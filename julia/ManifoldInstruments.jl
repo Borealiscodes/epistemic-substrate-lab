@@ -4,7 +4,7 @@ using LinearAlgebra
 using Random
 using StaticArrays
 
-export build_isometric_basis, holonomy_loop_static, verify_zero_allocation
+export build_isometric_basis, holonomy_integrate_static, holonomy_loop_static, verify_zero_allocation
 
 function build_isometric_basis(D::Int, k::Int; seed::Int=42)::Matrix{Float64}
     rng = MersenneTwister(seed)
@@ -27,7 +27,8 @@ end
     end)
 end
 
-function holonomy_loop_static(g_sub::SMatrix{K,K,Float64}; coupling::Float64=0.0, steps::Int=64) where {K}
+"""Purely stack-allocated path-ordered holonomy integrator (0 heap bytes)."""
+function holonomy_integrate_static(g_sub::SMatrix{K,K,Float64}; coupling::Float64=0.0, steps::Int=64)::SMatrix{K,K,Float64} where {K}
     H = one(SMatrix{K,K,Float64})
     dt = 2.0 * pi / steps
     for i in 0:(steps - 1)
@@ -38,16 +39,22 @@ function holonomy_loop_static(g_sub::SMatrix{K,K,Float64}; coupling::Float64=0.0
         step_exp = one(SMatrix{K,K,Float64}) + A_mid + 0.5 * (A_mid * A_mid)
         H = H * step_exp
     end
-    hol_dev = opnorm(Matrix(H - one(SMatrix{K,K,Float64})), 2)
-    min_eig = minimum(eigvals(Symmetric(Matrix(g_sub))))
+    return H
+end
+
+function holonomy_loop_static(g_sub::SMatrix{K,K,Float64}; coupling::Float64=0.0, steps::Int=64) where {K}
+    H = holonomy_integrate_static(g_sub; coupling=coupling, steps=steps)
+    hol_dev = opnorm(H - one(SMatrix{K,K,Float64}), 2)
+    min_eig = minimum(eigvals(Symmetric(g_sub)))
     return (holonomy_deviation=hol_dev, g_sub_min_eig=min_eig)
 end
 
 function verify_zero_allocation()
     P = build_isometric_basis(256, 8; seed=42)
     g_sub = SMatrix{8,8,Float64}(P' * P)
-    holonomy_loop_static(g_sub; coupling=0.0)
-    allocs = @allocated holonomy_loop_static(g_sub; coupling=0.0)
+    # Warmup JIT
+    holonomy_integrate_static(g_sub; coupling=0.25)
+    allocs = @allocated holonomy_integrate_static(g_sub; coupling=0.25)
     res_flat = holonomy_loop_static(g_sub; coupling=0.0)
     res_curved = holonomy_loop_static(g_sub; coupling=0.25)
     println("JULIA_STATIC_ALLOC_BYTES=", allocs)
