@@ -28,12 +28,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build Lean 4 proofs & fetch Mathlib cache
+      - name: Install elan toolchain via lean-action
         uses: leanprover/lean-action@v1
+        continue-on-error: true
         with:
           lake-package-directory: lean
           test: false
           lint: false
+      - name: Resolve Mathlib manifest, fetch cache & build proofs
+        working-directory: lean
+        run: |
+          export PATH="$HOME/.elan/bin:$PATH"
+          lake update
+          lake exe cache get
+          lake build
       - name: Verify zero sorry/admit
         working-directory: lean
         run: |
