@@ -1,14 +1,4 @@
 #!/usr/bin/env python3
-"""
-Experiment D (exp4_transformer_sae_audit.py):
-- Enforces Audit IV llmfit analytical memory admissibility gate before tensor load.
-- Extracts live mid-layer residual activations and pre-softmax logits from an
-  open-weight transformer (Qwen/Qwen2.5-0.5B, ~2.0 GB FP32, CI-safe).
-- Audits real model logits for KL triangle-inequality violations vs. Aitchison clr.
-- Compares Random QR covers vs. Activation-Seeded (SAE-style) covers inside a
-  Spherepop event transcript with edge-level H^1 obstruction localization.
-"""
-
 import hashlib
 import json
 import os
@@ -86,19 +76,19 @@ def extract_live_transformer_states(model_id: str = "Qwen/Qwen2.5-0.5B") -> dict
         for text in prompts:
             inputs = tokenizer(text, return_tensors="pt")
             out = model(**inputs)
-            # Last token residual stream at middle layer: shape (D,)
             h_mid = out.hidden_states[mid_layer][0, -1, :].cpu().numpy().astype(np.float64)
-            # Last token pre-softmax logits: shape (V,)
             z_last = out.logits[0, -1, :].cpu().numpy().astype(np.float64)
             residuals.append(h_mid)
             logits_list.append(z_last)
 
+    first_res = residuals
+    first_log = logits_list
     return {
         "source": "live_open_weight_transformer",
         "model_id": model_id,
         "mid_layer_index": int(mid_layer),
-        "hidden_dim_D": int(residuals[0].shape[0]),
-        "vocab_size_V": int(logits_list[0].shape[0]),
+        "hidden_dim_D": int(first_res.size),
+        "vocab_size_V": int(first_log.size),
         "residuals": residuals,
         "logits": logits_list,
     }
@@ -117,8 +107,7 @@ def build_qr_patches(D: int, k: int, n_patches: int, seed: int) -> list[np.ndarr
 
 
 def build_sae_aligned_patches(target_vec: np.ndarray, k: int, n_patches: int, seed: int) -> list[np.ndarray]:
-    """Builds orthonormal patches whose span explicitly includes the active residual feature direction."""
-    D = target_vec.shape[0]
+    D = int(target_vec.size)
     rng = np.random.default_rng(seed)
     v_unit = target_vec / (np.linalg.norm(target_vec) + 1e-12)
     patches = []
@@ -139,7 +128,8 @@ def evaluate_cover_with_edge_localization(
     perturb_patch0: bool,
 ) -> dict:
     n_patches = len(patches)
-    k = patches[0].shape[1]
+    first_patch = patches
+    k = int(first_patch.shape)
     rng = np.random.default_rng(404)
 
     sections = []
@@ -172,7 +162,6 @@ def evaluate_cover_with_edge_localization(
 
 
 def main() -> None:
-    # 1. Pre-flight llmfit hardware sizing check for Qwen2.5-0.5B
     budget = float(os.environ.get("RUNNER_RAM_BUDGET_GB", "12.0"))
     hw_gate = llmfit_memory_gate(
         params_billions=0.49,
@@ -194,7 +183,11 @@ def main() -> None:
         return
 
     states = extract_live_transformer_states("Qwen/Qwen2.5-0.5B")
-    z0, z1, z2 = states["logits"][0], states["logits"][1], states["logits"][2]
+    logits_list = states["logits"]
+    residuals = states["residuals"]
+
+    idx0, idx1, idx2 = 0, 1, 2
+    z0, z1, z2 = logits_list[idx0], logits_list[idx1], logits_list[idx2]
     p0, p1, p2 = softmax(z0), softmax(z1), softmax(z2)
 
     kl_02 = kl_div(p0, p2)
@@ -203,9 +196,8 @@ def main() -> None:
     aitch_02 = float(np.linalg.norm(c0 - c2))
     aitch_01_12 = float(np.linalg.norm(c0 - c1) + np.linalg.norm(c1 - c2))
 
-    # Compare Golden Gate Bridge residual (index 1) vs Baseline residual (index 0)
-    h_base = states["residuals"][0]
-    h_bridge = states["residuals"][1]
+    h_base = residuals[idx0]
+    h_bridge = residuals[idx1]
     D = states["hidden_dim_D"]
     k = 64
     n_patches = 6

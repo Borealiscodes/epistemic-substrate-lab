@@ -66,8 +66,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install numpy
-          pip install torch --index-url https://pytorch.org
-          pip install transformers
+          pip install torch transformers
       - name: Install Julia StaticArrays & verify 0-byte holonomy + sheaf allocation
         run: |
           julia -e 'using Pkg; Pkg.add("StaticArrays"); Pkg.precompile()'
