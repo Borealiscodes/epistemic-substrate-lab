@@ -35,11 +35,29 @@ def clr(p: np.ndarray) -> np.ndarray:
 
 
 def orthogonal_procrustes_step(u: np.ndarray, v: np.ndarray) -> np.ndarray:
-    u_norm = u / (np.linalg.norm(u) + 1e-12)
-    v_norm = v / (np.linalg.norm(v) + 1e-12)
-    M = np.outer(v_norm, u_norm)
-    U, _, Vt = np.linalg.svd(M)
-    return U @ Vt
+    """Minimal-angle geodesic rotation R in SO(k) mapping unit(u) -> unit(v)
+    inside span(u, v) while fixing the (k-2)-dimensional orthogonal complement."""
+    k = int(u.size)
+    I_k = np.eye(k, dtype=np.float64)
+    u_hat = u / (np.linalg.norm(u) + 1e-12)
+    v_hat = v / (np.linalg.norm(v) + 1e-12)
+    cos_t = float(np.clip(np.dot(u_hat, v_hat), -1.0, 1.0))
+
+    # Orthogonal component of v_hat relative to u_hat
+    w = v_hat - cos_t * u_hat
+    w_norm = float(np.linalg.norm(w))
+    if w_norm < 1e-12:
+        return I_k
+    w_hat = w / w_norm
+    sin_t = w_norm
+
+    # Geodesic rotation in the 2D plane spanned by (u_hat, w_hat)
+    R = (
+        I_k
+        + sin_t * (np.outer(w_hat, u_hat) - np.outer(u_hat, w_hat))
+        + (cos_t - 1.0) * (np.outer(u_hat, u_hat) + np.outer(w_hat, w_hat))
+    )
+    return R
 
 
 class SpherepopSession:

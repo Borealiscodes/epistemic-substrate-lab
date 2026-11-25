@@ -135,12 +135,18 @@ def run_self_healing_forward_pass(
             outcome_meta["healed"] = True
             outcome_meta["post_repair_norm"] = post_norm
 
+            repaired_ok = bool(post_norm <= 1e-6)
             session.record_verify(
                 f"L_{layer_idx}_harmonic_repair",
-                bool(post_norm <= 1e-6),
+                repaired_ok,
                 canonical_q16_sha256(h_repaired),
                 {"pre_repair_coboundary": pre_norm, "post_repair_coboundary": post_norm, "repaired_patch": bad_idx},
             )
+            if not repaired_ok:
+                raise SpherepopRefusalException(
+                    "REPAIR_COBOUNDARY_OBSTRUCTION",
+                    {"layer": layer_idx, "post_repair_coboundary": post_norm},
+                )
 
             # Write repaired hidden state back into PyTorch forward pass
             hidden_patched = hidden.clone()
