@@ -238,3 +238,68 @@ theorem v6_pipeline_collapses_iff_all_four_tracks_pass (s : V6DeploymentState) :
   simp [h1, h2, h3, h4]
 
 end V6ApplicationContracts
+
+namespace V7EstablishedRepairGate
+
+open SpherepopSheafBridge
+
+/-- History state tracking established Q16.16 checkpoint hashes and maintenance burden
+    modeled after spherepop-kernel@6be6108 (repair_target_fixture.json). -/
+structure RepairHistory where
+  establishedHashes : List String
+  currentHead : String
+  length : Nat
+  burden : Nat
+  budget : Nat
+  deriving DecidableEq, Repr
+
+/-- Evaluates a Spherepop REPAIR request against established history H,
+    principal authorization, maintenance budget, and post-repair sheaf gluing. -/
+def evaluateRepair
+    (h : RepairHistory)
+    (targetHash : String)
+    (authorized : Bool)
+    (postRepairCoboundaryZero : Bool) : Disposition × RepairHistory :=
+  if !(targetHash ∈ h.establishedHashes) then
+    (Disposition.refused "UNESTABLISHED", h)
+  else if !authorized then
+    (Disposition.refused "UNAUTHORIZED_PRINCIPAL", h)
+  else if h.burden > h.budget then
+    (Disposition.refused "MAINTENANCE_BUDGET_EXCEEDED", h)
+  else if !postRepairCoboundaryZero then
+    (Disposition.refused "REPAIR_COBOUNDARY_OBSTRUCTION", h)
+  else
+    let h' : RepairHistory := {
+      establishedHashes := targetHash :: h.establishedHashes
+      currentHead := targetHash
+      length := h.length + 1
+      burden := h.burden
+      budget := h.budget
+    }
+    (Disposition.collapsed, h')
+
+/-- Theorem (Matches repair_target_fixture.json Step 1):
+    If targetHash is not in H.establishedHashes, evaluateRepair MUST emit
+    REFUSE("UNESTABLISHED") and leave H completely unchanged. -/
+theorem unestablished_target_forces_refusal_and_preserves_history
+    (h : RepairHistory) (targetHash : String)
+    (authorized postRepairCoboundaryZero : Bool)
+    (h_missing : targetHash ∉ h.establishedHashes) :
+    evaluateRepair h targetHash authorized postRepairCoboundaryZero =
+      (Disposition.refused "UNESTABLISHED", h) := by
+  simp [evaluateRepair, h_missing]
+
+/-- Theorem (Matches repair_target_fixture.json Step 3):
+    An established target, authorized principal, bounded burden, and clean
+    harmonic coboundary yield COLLAPSE and advance history length by 1. -/
+theorem valid_established_repair_collapses
+    (h : RepairHistory) (targetHash : String)
+    (h_est : targetHash ∈ h.establishedHashes)
+    (h_auth : authorized = true)
+    (h_bud : ¬ (h.burden > h.budget))
+    (h_cob : postRepairCoboundaryZero = true) :
+    (evaluateRepair h targetHash authorized postRepairCoboundaryZero).1 = Disposition.collapsed ∧
+    (evaluateRepair h targetHash authorized postRepairCoboundaryZero).2.length = h.length + 1 := by
+  simp [evaluateRepair, h_est, h_auth, h_bud, h_cob]
+
+end V7EstablishedRepairGate

@@ -7,7 +7,7 @@ using StaticArrays
 export build_isometric_basis, holonomy_integrate_static, holonomy_loop_static,
        static_edge_coboundary_sq, sheaf_laplacian_spectrum,
        sheaf_edge_obstruction_profile, compose_depth_holonomy_static,
-       verify_zero_allocation
+       harmonic_patch_repair_static, verify_zero_allocation
 
 function build_isometric_basis(D::Int, k::Int; seed::Int=42)::Matrix{Float64}
     rng = MersenneTwister(seed)
@@ -76,6 +76,19 @@ function compose_depth_holonomy_static(
     return H
 end
 
+"""Zero-allocation harmonic sheaf boundary-value solver (0 heap bytes).
+Reconstructs a corrupted patch section s_0* from intact neighbor sections s_prev, s_next:
+  (I_K + M_01 * M_01') * s_0* = M_0prev * s_prev + M_01 * s_next
+where M_0prev = U_0' * U_prev and M_01 = U_0' * U_next."""
+function harmonic_patch_repair_static(
+    M_0prev::SMatrix{K,K,Float64}, s_prev::SVector{K,Float64},
+    M_01::SMatrix{K,K,Float64}, s_next::SVector{K,Float64}
+)::SVector{K,Float64} where {K}
+    A = one(SMatrix{K,K,Float64}) + (M_01 * M_01')
+    rhs = (M_0prev * s_prev) + (M_01 * s_next)
+    return A \ rhs
+end
+
 """Constructs block Sheaf Laplacian L_F = delta0' * delta0 for a cyclic cover."""
 function sheaf_laplacian_spectrum(patches::Vector{Matrix{Float64}})
     m = length(patches)
@@ -126,6 +139,15 @@ function verify_zero_allocation()
     compose_depth_holonomy_static(R_tup, R_tup)
     allocs_depth = @allocated compose_depth_holonomy_static(R_tup, R_tup)
 
+    # Verify 0-byte harmonic patch repair on K=8 patches spanning a shared subspace
+    U0 = SMatrix{64,8,Float64}(build_isometric_basis(64, 8; seed=11))
+    U1 = SMatrix{64,8,Float64}(build_isometric_basis(64, 8; seed=12))
+    U5 = SMatrix{64,8,Float64}(build_isometric_basis(64, 8; seed=13))
+    M_05 = U0' * U5
+    M_01 = U0' * U1
+    harmonic_patch_repair_static(M_05, s_i, M_01, s_j)
+    allocs_repair = @allocated harmonic_patch_repair_static(M_05, s_i, M_01, s_j)
+
     res_flat = holonomy_loop_static(g_sub; coupling=0.0)
     res_curved = holonomy_loop_static(g_sub; coupling=0.25)
     patches = [build_isometric_basis(64, 8; seed=10 + i) for i in 1:4]
@@ -139,6 +161,7 @@ function verify_zero_allocation()
     println("JULIA_HOLONOMY_ALLOC_BYTES=", allocs_hol)
     println("JULIA_SHEAF_EDGE_ALLOC_BYTES=", allocs_sheaf)
     println("JULIA_DEPTH_HOLONOMY_ALLOC_BYTES=", allocs_depth)
+    println("JULIA_REPAIR_SOLVER_ALLOC_BYTES=", allocs_repair)
     println("JULIA_FLAT_HOLONOMY=", res_flat.holonomy_deviation)
     println("JULIA_CURVED_HOLONOMY=", res_curved.holonomy_deviation)
     println("JULIA_SHEAF_LAMBDA_1=", spec.lambda_1)
@@ -148,6 +171,7 @@ function verify_zero_allocation()
     @assert allocs_hol == 0 "Expected 0 bytes for holonomy, got $(allocs_hol)"
     @assert allocs_sheaf == 0 "Expected 0 bytes for sheaf edge coboundary, got $(allocs_sheaf)"
     @assert allocs_depth == 0 "Expected 0 bytes for depth holonomy, got $(allocs_depth)"
+    @assert allocs_repair == 0 "Expected 0 bytes for harmonic repair solver, got $(allocs_repair)"
 end
 
 end # module

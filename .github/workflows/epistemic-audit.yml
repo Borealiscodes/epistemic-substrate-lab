@@ -1,4 +1,4 @@
-name: Epistemic Substrate Lab CI Audit (v6 Four-Track Applications)
+name: Epistemic Substrate Lab CI Audit (v7 Self-Healing Sheaf Repair)
 
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
           fi
 
   lean4-proof-gate:
-    name: Stage 1 - Lean 4 Zero-Sorry Proof Gate (v6 Unified 4-Track Contract)
+    name: Stage 1 - Lean 4 Zero-Sorry Proof Gate (v7 Established Repair)
     needs: edge-blob-guard
     runs-on: ubuntu-latest
     steps:
@@ -51,7 +51,7 @@ jobs:
           fi
 
   julia-and-python-experiments:
-    name: Stage 2 - Julia Geometry, Differential Fuzz, Experiments A-E & v6 Tracks 1-4
+    name: Stage 2 - Julia Geometry, Differential Fuzz & Experiments A-G
     needs: lean4-proof-gate
     runs-on: ubuntu-latest
     steps:
@@ -66,13 +66,14 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install numpy torch transformers
-      - name: Install Julia StaticArrays & verify 0-byte holonomy/sheaf/depth allocation
+      - name: Install Julia StaticArrays & verify 0-byte holonomy/sheaf/depth/repair allocation
         run: |
           julia -e 'using Pkg; Pkg.add("StaticArrays"); Pkg.precompile()'
           julia julia/ManifoldInstruments.jl
-      - name: Run Differential Fuzz & Baseline Experiments A-E
+      - name: Run Differential Fuzz & Experiments A-F
         env:
           RUNNER_RAM_BUDGET_GB: "12.0"
+          PYTHONPATH: "."
         run: |
           python3 experiments/differential_harness.py > telemetry_diff.json
           python3 experiments/exp1_metric_audit.py > telemetry_exp1.json
@@ -80,16 +81,17 @@ jobs:
           python3 experiments/exp3_spherepop_sheaf.py > telemetry_exp3.json
           python3 experiments/exp4_transformer_sae_audit.py > telemetry_exp4.json
           python3 experiments/exp5_multilayer_sae_holonomy.py > telemetry_exp5.json
-      - name: Run v6 Four-Track Applications Suite (Tracks 1-4)
+          python3 experiments/exp6_v6_applications_suite.py > telemetry_exp6.json
+      - name: Run Experiment G (V7 Self-Healing Sheaf Repair & Established History Gate)
         env:
           PYTHONPATH: "."
         run: |
-          python3 experiments/exp6_v6_applications_suite.py > telemetry_exp6.json
-          cat telemetry_exp6.json
-      - name: Archive v6 Telemetry as Immutable CI Artifacts
+          python3 experiments/exp7_self_healing_sheaf_repair.py > telemetry_exp7.json
+          cat telemetry_exp7.json
+      - name: Archive v7 Telemetry as Immutable CI Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: epistemic-telemetry-v6-${{ github.sha }}
+          name: epistemic-telemetry-v7-${{ github.sha }}
           path: |
             telemetry_diff.json
             telemetry_exp1.json
@@ -98,4 +100,5 @@ jobs:
             telemetry_exp4.json
             telemetry_exp5.json
             telemetry_exp6.json
+            telemetry_exp7.json
           retention-days: 90
