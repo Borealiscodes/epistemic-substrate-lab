@@ -17,9 +17,10 @@ theorem pullbackDist_triangle {α E : Type*} [SeminormedAddCommGroup E]
     (f : α → E) (x y z : α) :
     pullbackDist f x z ≤ pullbackDist f x y + pullbackDist f y z := by
   unfold pullbackDist
-  calc
-    ‖f x - f z‖ = ‖(f x - f y) + (f y - f z)‖ := by ring_nf
-    _ ≤ ‖f x - f y‖ + ‖f y - f z‖ := norm_add_le _ _
+  have h : f x - f z = (f x - f y) + (f y - f z) :=
+    (sub_add_sub_cancel (f x) (f y) (f z)).symm
+  rw [h]
+  exact norm_add_le (f x - f y) (f y - f z)
 
 structure GaussianRat where
   re : ℚ
@@ -39,7 +40,7 @@ abbrev Enneract9 := Fin 9 → GaussianRat
 abbrev PureOperator1x1 := Matrix (Fin 1) (Fin 1) GaussianRat
 
 def sumChannels {n : ℕ} (v : Fin n → GaussianRat) : GaussianRat :=
-  Finset.univ.fold GaussianRat.add GaussianRat.zero v
+  (List.ofFn v).foldl GaussianRat.add GaussianRat.zero
 
 def bindEnneract (P : Persona5) (E : Enneract9) : PureOperator1x1 :=
   fun _ _ => GaussianRat.mul (sumChannels P) (sumChannels E)
