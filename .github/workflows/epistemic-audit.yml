@@ -1,4 +1,4 @@
-name: Epistemic Substrate Lab CI Audit
+name: Epistemic Substrate Lab CI Audit (v3)
 
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
           fi
 
   lean4-proof-gate:
-    name: Stage 1 - Lean 4 Zero-Sorry Proof Gate
+    name: Stage 1 - Lean 4 Zero-Sorry Proof Gate (v3 Spherepop + Sheaf)
     needs: edge-blob-guard
     runs-on: ubuntu-latest
     steps:
@@ -51,7 +51,7 @@ jobs:
           fi
 
   julia-and-python-experiments:
-    name: Stage 2 - Julia Static Geometry & Python Experiments A & B
+    name: Stage 2 - Julia Static Sheaf/Holonomy, Differential Fuzz & Experiments A-C
     needs: lean4-proof-gate
     runs-on: ubuntu-latest
     steps:
@@ -66,21 +66,27 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install numpy
-      - name: Install Julia StaticArrays & verify 0-byte allocation
+      - name: Install Julia StaticArrays & verify 0-byte holonomy + sheaf allocation
         run: |
           julia -e 'using Pkg; Pkg.add("StaticArrays"); Pkg.precompile()'
           julia julia/ManifoldInstruments.jl
-      - name: Run Experiment A (Metric & Kernel Audit) & Experiment B (Sheaf Gluing)
+      - name: Run 100-Trial Differential Fuzz Gate (Julia vs Python)
+        run: |
+          python3 experiments/differential_harness.py > telemetry_diff.json
+          cat telemetry_diff.json
+      - name: Run Experiments A, B, and C (Spherepop SAE vs QR Sheaf)
         run: |
           python3 experiments/exp1_metric_audit.py > telemetry_exp1.json
           python3 experiments/exp2_sheaf_gluing.py > telemetry_exp2.json
-          cat telemetry_exp1.json
-          cat telemetry_exp2.json
-      - name: Archive Telemetry as Immutable CI Artifacts
+          python3 experiments/exp3_spherepop_sheaf.py > telemetry_exp3.json
+          cat telemetry_exp3.json
+      - name: Archive v3 Telemetry as Immutable CI Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: epistemic-telemetry-${{ github.sha }}
+          name: epistemic-telemetry-v3-${{ github.sha }}
           path: |
+            telemetry_diff.json
             telemetry_exp1.json
             telemetry_exp2.json
+            telemetry_exp3.json
           retention-days: 90

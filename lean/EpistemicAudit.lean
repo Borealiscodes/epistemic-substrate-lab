@@ -84,3 +84,50 @@ theorem non_entailment_of_accountable_authorship :
   exact h.2.1
 
 end EpistemicAudit
+
+namespace SpherepopSheafBridge
+
+/-- Scoped execution disposition modeled after Spherepop@fe79af5. -/
+inductive Disposition where
+  | collapsed : Disposition
+  | refused (reason : String) : Disposition
+  deriving DecidableEq, Repr
+
+/-- Local verification state for a rank-k patch or scoped sphere. -/
+structure ScopedPatch where
+  localVerified : Bool
+  boundAuthority : Bool
+
+/-- Global collapse is admissible iff both local scopes are verified,
+    bound to authority, and their overlap coboundary vanishes (delta^0 s = 0). -/
+def evaluateComposition (p1 p2 : ScopedPatch) (overlapCoboundaryZero : Bool) : Disposition :=
+  if p1.localVerified && p2.localVerified && p1.boundAuthority && p2.boundAuthority && overlapCoboundaryZero then
+    Disposition.collapsed
+  else
+    Disposition.refused "COBOUNDARY_OR_AUTHORITY_OBSTRUCTION"
+
+/-- Nested Sphere Theorem: Locally valid patches with non-vanishing coboundary
+    are mathematically barred from global collapse and must emit Refuse. -/
+theorem nested_obstruction_forces_refusal
+    (p1 p2 : ScopedPatch)
+    (h1 : p1.localVerified = true) (h2 : p2.localVerified = true)
+    (hb1 : p1.boundAuthority = true) (hb2 : p2.boundAuthority = true)
+    (h_obs : overlapCoboundaryZero = false) :
+    evaluateComposition p1 p2 overlapCoboundaryZero =
+      Disposition.refused "COBOUNDARY_OR_AUTHORITY_OBSTRUCTION" := by
+  simp [evaluateComposition, h1, h2, hb1, hb2, h_obs]
+
+/-- Linear coboundary exactness (delta^1 o delta^0 = 0) over modules:
+    any exact 1-cochain delta^0(s) lies in ker(delta^1). -/
+theorem coboundary_exactness_zero
+    {R C0 C1 C2 : Type*} [Ring R]
+    [AddCommGroup C0] [Module R C0]
+    [AddCommGroup C1] [Module R C1]
+    [AddCommGroup C2] [Module R C2]
+    (d0 : C0 →ₗ[R] C1) (d1 : C1 →ₗ[R] C2)
+    (hexact : d1.comp d0 = 0) (s : C0) :
+    d1 (d0 s) = 0 := by
+  have h := LinearMap.congr_fun hexact s
+  simpa [LinearMap.comp_apply] using h
+
+end SpherepopSheafBridge

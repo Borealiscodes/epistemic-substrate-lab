@@ -4,7 +4,8 @@ using LinearAlgebra
 using Random
 using StaticArrays
 
-export build_isometric_basis, holonomy_integrate_static, holonomy_loop_static, verify_zero_allocation
+export build_isometric_basis, holonomy_integrate_static, holonomy_loop_static,
+       static_edge_coboundary_sq, sheaf_laplacian_spectrum, verify_zero_allocation
 
 function build_isometric_basis(D::Int, k::Int; seed::Int=42)::Matrix{Float64}
     rng = MersenneTwister(seed)
@@ -49,18 +50,62 @@ function holonomy_loop_static(g_sub::SMatrix{K,K,Float64}; coupling::Float64=0.0
     return (holonomy_deviation=hol_dev, g_sub_min_eig=min_eig)
 end
 
+"""Zero-allocation cellular sheaf edge coboundary squared norm ||F_{j->e}(s_j) - F_{i->e}(s_i)||_2^2."""
+@inline function static_edge_coboundary_sq(
+    R_i::SMatrix{M,K,Float64}, s_i::SVector{K,Float64},
+    R_j::SMatrix{M,K,Float64}, s_j::SVector{K,Float64}
+)::Float64 where {M,K}
+    diff = (R_j * s_j) - (R_i * s_i)
+    return dot(diff, diff)
+end
+
+"""Constructs the block Sheaf Laplacian L_F = delta0' * delta0 for a cyclic cover of patches."""
+function sheaf_laplacian_spectrum(patches::Vector{Matrix{Float64}})
+    m = length(patches)
+    D, k = size(patches[1])
+    # Overlap operator on edge (i, j): maps s_i -> P_j' * P_i * s_i vs s_j -> I_k * s_j
+    delta0 = zeros(Float64, m * k, m * k)
+    for i in 1:m
+        j = mod1(i + 1, m)
+        row_rng = ((i - 1) * k + 1):(i * k)
+        col_i = ((i - 1) * k + 1):(i * k)
+        col_j = ((j - 1) * k + 1):(j * k)
+        delta0[row_rng, col_i] .= -(patches[j]' * patches[i])
+        delta0[row_rng, col_j] .= Matrix{Float64}(I, k, k)
+    end
+    L_F = Symmetric(delta0' * delta0)
+    evals = eigvals(L_F)
+    non_zero = filter(v -> v > 1e-10, evals)
+    lambda_1 = isempty(non_zero) ? 0.0 : minimum(non_zero)
+    return (delta0=delta0, L_F=Matrix(L_F), lambda_1=lambda_1, max_eig=maximum(evals))
+end
+
 function verify_zero_allocation()
     P = build_isometric_basis(256, 8; seed=42)
     g_sub = SMatrix{8,8,Float64}(P' * P)
-    # Warmup JIT
     holonomy_integrate_static(g_sub; coupling=0.25)
-    allocs = @allocated holonomy_integrate_static(g_sub; coupling=0.25)
+    allocs_hol = @allocated holonomy_integrate_static(g_sub; coupling=0.25)
+
+    R_i = SMatrix{4,8,Float64}(randn(MersenneTwister(1), 4, 8))
+    R_j = SMatrix{4,8,Float64}(randn(MersenneTwister(2), 4, 8))
+    s_i = SVector{8,Float64}(ntuple(idx -> Float64(idx) * 0.1, Val(8)))
+    s_j = SVector{8,Float64}(ntuple(idx -> Float64(idx) * 0.12, Val(8)))
+    static_edge_coboundary_sq(R_i, s_i, R_j, s_j)
+    allocs_sheaf = @allocated static_edge_coboundary_sq(R_i, s_i, R_j, s_j)
+
     res_flat = holonomy_loop_static(g_sub; coupling=0.0)
     res_curved = holonomy_loop_static(g_sub; coupling=0.25)
-    println("JULIA_STATIC_ALLOC_BYTES=", allocs)
+    patches = [build_isometric_basis(64, 8; seed=10 + i) for i in 1:4]
+    spec = sheaf_laplacian_spectrum(patches)
+
+    println("JULIA_HOLONOMY_ALLOC_BYTES=", allocs_hol)
+    println("JULIA_SHEAF_EDGE_ALLOC_BYTES=", allocs_sheaf)
     println("JULIA_FLAT_HOLONOMY=", res_flat.holonomy_deviation)
     println("JULIA_CURVED_HOLONOMY=", res_curved.holonomy_deviation)
-    @assert allocs == 0 "Expected 0 heap allocations in static holonomy loop, got $(allocs)"
+    println("JULIA_SHEAF_LAMBDA_1=", spec.lambda_1)
+
+    @assert allocs_hol == 0 "Expected 0 bytes for holonomy, got $(allocs_hol)"
+    @assert allocs_sheaf == 0 "Expected 0 bytes for sheaf edge coboundary, got $(allocs_sheaf)"
 end
 
 end # module
