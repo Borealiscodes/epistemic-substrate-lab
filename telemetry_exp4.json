@@ -1,0 +1,76 @@
+{
+  "experiment": "Experiment_D_OpenWeight_Transformer_SAE_Audit",
+  "model_id": "Qwen/Qwen2.5-0.5B",
+  "mid_layer_index": 12,
+  "hidden_dim_D": 896,
+  "vocab_size_V": 151936,
+  "hardware_gate": {
+    "estimated_footprint_gb": 2.1721,
+    "runner_budget_gb": 12.0,
+    "mem_within_budget": true,
+    "pre_flight_disposition": "ADMIT"
+  },
+  "live_logit_metric_audit": {
+    "kl_direct_02": 1.3620070455565327,
+    "kl_sum_01_12": 3.938803765691445,
+    "kl_violates_triangle_inequality": false,
+    "aitchison_direct_02": 660.8477018797953,
+    "aitchison_sum_01_12": 1656.9774216360613,
+    "aitchison_satisfies_triangle_inequality": true
+  },
+  "residual_steering_telemetry": {
+    "baseline_q16_hash": "9cd180bd678a5d37",
+    "bridge_persona_q16_hash": "9643d5f33d586008",
+    "l2_steering_shift": 9.480036823637795
+  },
+  "sheaf_cover_audits": [
+    {
+      "cover_type": "random_qr_bridge_residual",
+      "local_intervention_applied": false,
+      "total_coboundary_norm": 9.722937703663716,
+      "worst_obstruction_edge": "(0, 1)",
+      "max_edge_norm": 4.32940274715123,
+      "edge_norms": [
+        4.32940274715123,
+        4.081597585363826,
+        3.730422062670942,
+        3.664596874334114,
+        3.986689940791583,
+        3.9866445655948253
+      ],
+      "spherepop_disposition": "REFUSE"
+    },
+    {
+      "cover_type": "sae_aligned_bridge_residual",
+      "local_intervention_applied": false,
+      "total_coboundary_norm": 7.40223913114779e-15,
+      "worst_obstruction_edge": "(3, 4)",
+      "max_edge_norm": 3.571235753331162e-15,
+      "edge_norms": [
+        2.6787722701192114e-15,
+        2.8352518335680117e-15,
+        2.897331623418048e-15,
+        3.571235753331162e-15,
+        3.075659769694996e-15,
+        2.9951180208692707e-15
+      ],
+      "spherepop_disposition": "COLLAPSE"
+    },
+    {
+      "cover_type": "sae_aligned_local_causa_intervention",
+      "local_intervention_applied": true,
+      "total_coboundary_norm": 3.9368128197886496,
+      "worst_obstruction_edge": "(5, 0)",
+      "max_edge_norm": 3.846363482313328,
+      "edge_norms": [
+        0.8390370313512663,
+        2.8352518335680117e-15,
+        2.897331623418048e-15,
+        3.571235753331162e-15,
+        3.075659769694996e-15,
+        3.846363482313328
+      ],
+      "spherepop_disposition": "REFUSE"
+    }
+  ]
+}

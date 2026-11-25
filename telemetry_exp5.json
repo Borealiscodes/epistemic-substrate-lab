@@ -1,0 +1,53 @@
+{
+  "experiment": "Experiment_E_MultiLayer_Depth_Holonomy_and_Polysemantic_Gluing",
+  "model_id": "Qwen/Qwen2.5-0.5B",
+  "num_layers": 24,
+  "hidden_dim_D": 896,
+  "depth_holonomy_telemetry": {
+    "closed_depth_holonomy_norm": 1.9997920740301214,
+    "peak_angular_twist_transition": "L_22 -> L_23",
+    "peak_angular_twist_rad": 1.247435,
+    "layer_step_angles_rad": [
+      0.18412,
+      0.090225,
+      0.136757,
+      0.124647,
+      0.169094,
+      0.194003,
+      0.167627,
+      0.126342,
+      0.102409,
+      0.125986,
+      0.104924,
+      0.114406,
+      0.117496,
+      0.134288,
+      0.144365,
+      0.129494,
+      0.111605,
+      0.086219,
+      0.113355,
+      0.127998,
+      0.124624,
+      0.096836,
+      1.247435
+    ]
+  },
+  "polysemantic_gluing_comparison": {
+    "single_atom_coboundary_norm": 7.769135499917972,
+    "single_atom_disposition": "REFUSE",
+    "multi_atom_coboundary_norm": 8.018507675638592e-15,
+    "multi_atom_disposition": "COLLAPSE"
+  },
+  "v5_depth_chain_gate": {
+    "clean_chain_all_layers_valid": true,
+    "clean_chain_disposition": "COLLAPSE",
+    "perturbed_L12_chain_all_layers_valid": false,
+    "perturbed_L12_chain_disposition": "REFUSE:DEPTH_CHAIN_COBOUNDARY_OBSTRUCTION",
+    "sampled_layer_coboundary_norms": {
+      "L_0": 2.2009615131425303e-15,
+      "L_12": 4.748769112260834,
+      "L_23": 1.1913913079167508e-13
+    }
+  }
+}
