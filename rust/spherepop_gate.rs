@@ -72,19 +72,23 @@ fn run_self_tests() {
 
 fn main() {
     run_self_tests();
-    let args: Vec<String> = env::args().collect();
-    if args.len() == 5 {
+    let mut args = env::args().skip(1);
+    let count_arg = args.next();
+    if let Some(c_str) = count_arg {
+        let est_str = args.next().unwrap_or_default();
+        let bud_str = args.next().unwrap_or_default();
+        let cob_str = args.next().unwrap_or_default();
         let state = V8SelfHealingState {
-            corrupted_patch_count: args[1].parse().unwrap_or(99),
-            target_established: args[2] == "true",
-            burden_within_budget: args[3] == "true",
-            post_repair_coboundary_zero: args[4] == "true",
+            corrupted_patch_count: c_str.parse().unwrap_or(99),
+            target_established: est_str == "true",
+            burden_within_budget: bud_str == "true",
+            post_repair_coboundary_zero: cob_str == "true",
         };
         match evaluate_self_healing_pass(&state) {
             Disposition::Collapsed => println!("COLLAPSE"),
             Disposition::Refused(reason) => println!("REFUSE:{}", reason),
         }
-    } else if args.len() == 1 {
+    } else if env::args().len() == 1 {
         println!("RUST_SPHEREPOP_V8_GATE_VERIFIED=true");
     } else {
         eprintln!("Usage: spherepop_gate [<corrupted_count> <established> <budget_ok> <coboundary_ok>]");

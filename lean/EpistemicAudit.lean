@@ -343,10 +343,8 @@ def evaluateSelfHealingPass (s : V8SelfHealingState) : Disposition :=
 theorem multi_patch_corruption_forces_refusal
     (s : V8SelfHealingState) (h_byz : s.corruptedPatchCount > 1) :
     evaluateSelfHealingPass s = Disposition.refused "BYZANTINE_MULTI_PATCH_OBSTRUCTION" := by
-  have h_ne0 : (s.corruptedPatchCount == 0) = false := by
-    simp [Nat.ne_of_gt (Nat.lt_trans Nat.zero_lt_one h_byz)]
-  have h_gt1 : (s.corruptedPatchCount > 1) = true := decide_eq_true h_byz
-  simp [evaluateSelfHealingPass, h_ne0, h_gt1]
+  have h_ne0 : s.corruptedPatchCount ≠ 0 := Nat.ne_of_gt (Nat.lt_trans Nat.zero_lt_one h_byz)
+  simp [evaluateSelfHealingPass, h_ne0, h_byz]
 
 /-- Theorem 2 (Single-Fault Harmonic Recovery): A single-patch fault with an established
     target hash, valid budget, and machine-zero post-repair coboundary yields COLLAPSE. -/
