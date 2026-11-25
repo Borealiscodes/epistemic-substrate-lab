@@ -199,3 +199,42 @@ theorem layer_chain_collapses_iff_all_true (layers : List Bool) :
       exact hall b hb
 
 end V5DepthChainGate
+
+namespace V6ApplicationContracts
+
+open SpherepopSheafBridge
+
+/-- Unified operational state across all four v6 application tracks:
+    Track 1 (Firewall), Track 2 (Quantization), Track 3 (CI Warrant), Track 4 (Calibration). -/
+structure V6DeploymentState where
+  firewallLayersClean : Bool
+  quantGeometryValid : Bool
+  humanWarrantBound : Bool
+  unembeddingCalibrated : Bool
+
+def evaluateV6Pipeline (s : V6DeploymentState) : Disposition :=
+  if s.firewallLayersClean && s.quantGeometryValid && s.humanWarrantBound && s.unembeddingCalibrated then
+    Disposition.collapsed
+  else if !s.firewallLayersClean then
+    Disposition.refused "TRACK1_RUNTIME_STEERING_OBSTRUCTION"
+  else if !s.quantGeometryValid then
+    Disposition.refused "TRACK2_QUANTIZATION_GEOMETRY_DISTORTION"
+  else if !s.humanWarrantBound then
+    Disposition.refused "TRACK3_UNENDORSED_ASYMMETRIC_INSCRIPTION"
+  else
+    Disposition.refused "TRACK4_UNEMBEDDING_CALIBRATION_ANOMALY"
+
+theorem v6_pipeline_collapses_iff_all_four_tracks_pass (s : V6DeploymentState) :
+    evaluateV6Pipeline s = Disposition.collapsed ↔
+      (s.firewallLayersClean = true ∧
+       s.quantGeometryValid = true ∧
+       s.humanWarrantBound = true ∧
+       s.unembeddingCalibrated = true) := by
+  unfold evaluateV6Pipeline
+  by_cases h1 : s.firewallLayersClean = true <;>
+  by_cases h2 : s.quantGeometryValid = true <;>
+  by_cases h3 : s.humanWarrantBound = true <;>
+  by_cases h4 : s.unembeddingCalibrated = true <;>
+  simp [h1, h2, h3, h4]
+
+end V6ApplicationContracts
