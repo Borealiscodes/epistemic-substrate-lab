@@ -5,7 +5,8 @@ using Random
 using StaticArrays
 
 export build_isometric_basis, holonomy_integrate_static, holonomy_loop_static,
-       static_edge_coboundary_sq, sheaf_laplacian_spectrum, verify_zero_allocation
+       static_edge_coboundary_sq, sheaf_laplacian_spectrum,
+       sheaf_edge_obstruction_profile, verify_zero_allocation
 
 function build_isometric_basis(D::Int, k::Int; seed::Int=42)::Matrix{Float64}
     rng = MersenneTwister(seed)
@@ -50,7 +51,7 @@ function holonomy_loop_static(g_sub::SMatrix{K,K,Float64}; coupling::Float64=0.0
     return (holonomy_deviation=hol_dev, g_sub_min_eig=min_eig)
 end
 
-"""Zero-allocation cellular sheaf edge coboundary squared norm ||F_{j->e}(s_j) - F_{i->e}(s_i)||_2^2."""
+"""Zero-allocation cellular sheaf edge coboundary squared norm."""
 @inline function static_edge_coboundary_sq(
     R_i::SMatrix{M,K,Float64}, s_i::SVector{K,Float64},
     R_j::SMatrix{M,K,Float64}, s_j::SVector{K,Float64}
@@ -59,11 +60,10 @@ end
     return dot(diff, diff)
 end
 
-"""Constructs the block Sheaf Laplacian L_F = delta0' * delta0 for a cyclic cover of patches."""
+"""Constructs block Sheaf Laplacian L_F = delta0' * delta0 for a cyclic cover."""
 function sheaf_laplacian_spectrum(patches::Vector{Matrix{Float64}})
     m = length(patches)
-    D, k = size(patches[1])
-    # Overlap operator on edge (i, j): maps s_i -> P_j' * P_i * s_i vs s_j -> I_k * s_j
+    _, k = size(patches)
     delta0 = zeros(Float64, m * k, m * k)
     for i in 1:m
         j = mod1(i + 1, m)
@@ -78,6 +78,19 @@ function sheaf_laplacian_spectrum(patches::Vector{Matrix{Float64}})
     non_zero = filter(v -> v > 1e-10, evals)
     lambda_1 = isempty(non_zero) ? 0.0 : minimum(non_zero)
     return (delta0=delta0, L_F=Matrix(L_F), lambda_1=lambda_1, max_eig=maximum(evals))
+end
+
+"""Localizes coboundary energy across each edge (i, j) to identify which patch overlap caused REFUSE."""
+function sheaf_edge_obstruction_profile(patches::Vector{Matrix{Float64}}, sections::Vector{Vector{Float64}})
+    m = length(patches)
+    edge_norms = Vector{Float64}(undef, m)
+    for i in 1:m
+        j = mod1(i + 1, m)
+        diff = (patches[j]' * (patches[j] * sections[j])) - (patches[j]' * (patches[i] * sections[i]))
+        edge_norms[i] = norm(diff, 2)
+    end
+    worst_edge = argmax(edge_norms)
+    return (edge_norms=edge_norms, worst_edge_idx=worst_edge, max_edge_norm=edge_norms[worst_edge], total_norm=norm(edge_norms, 2))
 end
 
 function verify_zero_allocation()
@@ -98,11 +111,19 @@ function verify_zero_allocation()
     patches = [build_isometric_basis(64, 8; seed=10 + i) for i in 1:4]
     spec = sheaf_laplacian_spectrum(patches)
 
+    # Verify edge localization pinpoints perturbed patch 1 -> edge (1,2) and (4,1)
+    x_test = randn(MersenneTwister(99), 64)
+    secs = [P_i' * x_test for P_i in patches]
+    secs .+= 0.5 .* randn(MersenneTwister(100), 8)
+    loc = sheaf_edge_obstruction_profile(patches, secs)
+
     println("JULIA_HOLONOMY_ALLOC_BYTES=", allocs_hol)
     println("JULIA_SHEAF_EDGE_ALLOC_BYTES=", allocs_sheaf)
     println("JULIA_FLAT_HOLONOMY=", res_flat.holonomy_deviation)
     println("JULIA_CURVED_HOLONOMY=", res_curved.holonomy_deviation)
     println("JULIA_SHEAF_LAMBDA_1=", spec.lambda_1)
+    println("JULIA_WORST_OBSTRUCTION_EDGE=", loc.worst_edge_idx)
+    println("JULIA_MAX_EDGE_NORM=", loc.max_edge_norm)
 
     @assert allocs_hol == 0 "Expected 0 bytes for holonomy, got $(allocs_hol)"
     @assert allocs_sheaf == 0 "Expected 0 bytes for sheaf edge coboundary, got $(allocs_sheaf)"

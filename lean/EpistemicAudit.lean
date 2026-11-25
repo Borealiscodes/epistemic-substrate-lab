@@ -131,3 +131,27 @@ theorem coboundary_exactness_zero
   simpa [LinearMap.comp_apply] using h
 
 end SpherepopSheafBridge
+
+namespace V4HardwareAndCohomologyGate
+
+open SpherepopSheafBridge
+
+/-- Hardware memory admissibility gate modeled after Audit IV (llmfit sizing check). -/
+def evaluateHardwareAndComposition
+    (memWithinBudget : Bool)
+    (p1 p2 : ScopedPatch)
+    (overlapCoboundaryZero : Bool) : Disposition :=
+  if !memWithinBudget then
+    Disposition.refused "HARDWARE_MEMORY_EXCEEDED"
+  else
+    evaluateComposition p1 p2 overlapCoboundaryZero
+
+/-- Theorem: Exceeding the cgroup/CI RAM budget forces an auditable Spherepop
+    REFUSE event prior to tensor allocation, preventing silent OOM kills. -/
+theorem memory_overflow_forces_refusal
+    (p1 p2 : ScopedPatch) (overlapCoboundaryZero : Bool) :
+    evaluateHardwareAndComposition false p1 p2 overlapCoboundaryZero =
+      Disposition.refused "HARDWARE_MEMORY_EXCEEDED" := by
+  simp [evaluateHardwareAndComposition]
+
+end V4HardwareAndCohomologyGate
