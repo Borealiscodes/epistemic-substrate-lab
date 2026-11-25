@@ -1,0 +1,10 @@
+{
+  "experiment": "Experiment_B_Superposition_Sheaf_Gluing",
+  "ambient_dim_D": 256,
+  "superposed_features_F": 2048,
+  "num_patches": 6,
+  "patch_rank_k": 64,
+  "coboundary_residual_unperturbed": 2.743417308757306,
+  "coboundary_residual_local_intervention": 5.856049313968932,
+  "v3_sheaf_cohomology_warranted": true
+}
