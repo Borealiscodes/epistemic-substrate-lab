@@ -6,7 +6,8 @@ using StaticArrays
 
 export build_isometric_basis, holonomy_integrate_static, holonomy_loop_static,
        static_edge_coboundary_sq, sheaf_laplacian_spectrum,
-       sheaf_edge_obstruction_profile, verify_zero_allocation
+       sheaf_edge_obstruction_profile, compose_depth_holonomy_static,
+       verify_zero_allocation
 
 function build_isometric_basis(D::Int, k::Int; seed::Int=42)::Matrix{Float64}
     rng = MersenneTwister(seed)
@@ -60,6 +61,21 @@ end
     return dot(diff, diff)
 end
 
+"""Zero-allocation closed-loop depth holonomy composer over N-1 static transport operators."""
+function compose_depth_holonomy_static(
+    R_steer::NTuple{L,SMatrix{K,K,Float64}},
+    R_base_rev::NTuple{L,SMatrix{K,K,Float64}}
+)::SMatrix{K,K,Float64} where {L,K}
+    H = one(SMatrix{K,K,Float64})
+    for t in 1:L
+        H = R_steer[t] * H
+    end
+    for t in 1:L
+        H = R_base_rev[t] * H
+    end
+    return H
+end
+
 """Constructs block Sheaf Laplacian L_F = delta0' * delta0 for a cyclic cover."""
 function sheaf_laplacian_spectrum(patches::Vector{Matrix{Float64}})
     m = length(patches)
@@ -106,6 +122,10 @@ function verify_zero_allocation()
     static_edge_coboundary_sq(R_i, s_i, R_j, s_j)
     allocs_sheaf = @allocated static_edge_coboundary_sq(R_i, s_i, R_j, s_j)
 
+    R_tup = ntuple(_ -> one(SMatrix{8,8,Float64}), Val(23))
+    compose_depth_holonomy_static(R_tup, R_tup)
+    allocs_depth = @allocated compose_depth_holonomy_static(R_tup, R_tup)
+
     res_flat = holonomy_loop_static(g_sub; coupling=0.0)
     res_curved = holonomy_loop_static(g_sub; coupling=0.25)
     patches = [build_isometric_basis(64, 8; seed=10 + i) for i in 1:4]
@@ -118,6 +138,7 @@ function verify_zero_allocation()
 
     println("JULIA_HOLONOMY_ALLOC_BYTES=", allocs_hol)
     println("JULIA_SHEAF_EDGE_ALLOC_BYTES=", allocs_sheaf)
+    println("JULIA_DEPTH_HOLONOMY_ALLOC_BYTES=", allocs_depth)
     println("JULIA_FLAT_HOLONOMY=", res_flat.holonomy_deviation)
     println("JULIA_CURVED_HOLONOMY=", res_curved.holonomy_deviation)
     println("JULIA_SHEAF_LAMBDA_1=", spec.lambda_1)
@@ -126,6 +147,7 @@ function verify_zero_allocation()
 
     @assert allocs_hol == 0 "Expected 0 bytes for holonomy, got $(allocs_hol)"
     @assert allocs_sheaf == 0 "Expected 0 bytes for sheaf edge coboundary, got $(allocs_sheaf)"
+    @assert allocs_depth == 0 "Expected 0 bytes for depth holonomy, got $(allocs_depth)"
 end
 
 end # module

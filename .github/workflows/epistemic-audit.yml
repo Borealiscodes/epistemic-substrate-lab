@@ -1,4 +1,4 @@
-name: Epistemic Substrate Lab CI Audit (v4 Open-Weight Transformer)
+name: Epistemic Substrate Lab CI Audit (v5 Multi-Layer Holonomy)
 
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
           fi
 
   lean4-proof-gate:
-    name: Stage 1 - Lean 4 Zero-Sorry Proof Gate (v4 Hardware & Sheaf)
+    name: Stage 1 - Lean 4 Zero-Sorry Proof Gate (v5 Depth Chain)
     needs: edge-blob-guard
     runs-on: ubuntu-latest
     steps:
@@ -51,7 +51,7 @@ jobs:
           fi
 
   julia-and-python-experiments:
-    name: Stage 2 - Julia Static Geometry, Differential Fuzz & Experiments A-D
+    name: Stage 2 - Julia Static Geometry & Experiments A-E (24-Layer Qwen2.5-0.5B)
     needs: lean4-proof-gate
     runs-on: ubuntu-latest
     steps:
@@ -65,32 +65,33 @@ jobs:
       - name: Install Python scientific & CPU transformer dependencies
         run: |
           pip install --upgrade pip
-          pip install numpy
-          pip install torch transformers
-      - name: Install Julia StaticArrays & verify 0-byte holonomy + sheaf allocation
+          pip install numpy torch transformers
+      - name: Install Julia StaticArrays & verify 0-byte holonomy/sheaf/depth allocation
         run: |
           julia -e 'using Pkg; Pkg.add("StaticArrays"); Pkg.precompile()'
           julia julia/ManifoldInstruments.jl
-      - name: Run 100-Trial Differential Fuzz Gate & Experiments A-C
+      - name: Run Differential Fuzz & Experiments A-D
+        env:
+          RUNNER_RAM_BUDGET_GB: "12.0"
         run: |
           python3 experiments/differential_harness.py > telemetry_diff.json
           python3 experiments/exp1_metric_audit.py > telemetry_exp1.json
           python3 experiments/exp2_sheaf_gluing.py > telemetry_exp2.json
           python3 experiments/exp3_spherepop_sheaf.py > telemetry_exp3.json
-      - name: Run Experiment D (Open-Weight Qwen2.5-0.5B Residual & SAE Sheaf Audit)
-        env:
-          RUNNER_RAM_BUDGET_GB: "12.0"
-        run: |
           python3 experiments/exp4_transformer_sae_audit.py > telemetry_exp4.json
-          cat telemetry_exp4.json
-      - name: Archive v4 Telemetry as Immutable CI Artifacts
+      - name: Run Experiment E (24-Layer Depth Holonomy & Polysemantic Gluing)
+        run: |
+          python3 experiments/exp5_multilayer_sae_holonomy.py > telemetry_exp5.json
+          cat telemetry_exp5.json
+      - name: Archive v5 Telemetry as Immutable CI Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: epistemic-telemetry-v4-${{ github.sha }}
+          name: epistemic-telemetry-v5-${{ github.sha }}
           path: |
             telemetry_diff.json
             telemetry_exp1.json
             telemetry_exp2.json
             telemetry_exp3.json
             telemetry_exp4.json
+            telemetry_exp5.json
           retention-days: 90

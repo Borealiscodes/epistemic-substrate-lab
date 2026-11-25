@@ -155,3 +155,47 @@ theorem memory_overflow_forces_refusal
   simp [evaluateHardwareAndComposition]
 
 end V4HardwareAndCohomologyGate
+
+namespace V5DepthChainGate
+
+open SpherepopSheafBridge
+
+/-- Evaluates global collapse across an entire multi-layer trajectory (L_0 -> L_{N-1}):
+    every layer must pass coboundary gluing for global COLLAPSE to be admissible. -/
+def evaluateLayerChain (layerCoboundaryZeros : List Bool) : Disposition :=
+  if layerCoboundaryZeros.all id then
+    Disposition.collapsed
+  else
+    Disposition.refused "DEPTH_CHAIN_COBOUNDARY_OBSTRUCTION"
+
+/-- Theorem: A coboundary obstruction at ANY single layer in the forward pass
+    mathematically prevents global COLLAPSE and forces REFUSE. -/
+theorem single_layer_obstruction_refuses_chain
+    (layers : List Bool) (h_bad : false ∈ layers) :
+    evaluateLayerChain layers =
+      Disposition.refused "DEPTH_CHAIN_COBOUNDARY_OBSTRUCTION" := by
+  unfold evaluateLayerChain
+  have h_not_all : layers.all id = false := by
+    rw [List.all_eq_false]
+    exact ⟨false, h_bad, by decide⟩
+  simp [h_not_all]
+
+/-- Theorem: A multi-layer chain collapses if and only if every layer is obstruction-free. -/
+theorem layer_chain_collapses_iff_all_true (layers : List Bool) :
+    evaluateLayerChain layers = Disposition.collapsed ↔ ∀ b ∈ layers, b = true := by
+  unfold evaluateLayerChain
+  split
+  · rename_i h
+    rw [List.all_eq_true] at h
+    exact ⟨fun _ b hb => of_decide_eq_true (h b hb), fun _ => rfl⟩
+  · rename_i h
+    constructor
+    · intro h_eq; cases h_eq
+    · intro hall
+      exfalso
+      apply h
+      rw [List.all_eq_true]
+      intro b hb
+      exact decide_eq_true (hall b hb)
+
+end V5DepthChainGate
