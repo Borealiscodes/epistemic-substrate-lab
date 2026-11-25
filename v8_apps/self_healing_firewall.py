@@ -125,7 +125,7 @@ def run_self_healing_forward_pass(
             if burden > budget:
                 raise SpherepopRefusalException("MAINTENANCE_BUDGET_EXCEEDED", {"burden": burden, "budget": budget})
 
-            bad_idx = next(iter(detected_bad))[0]
+            bad_idx = next(iter(detected_bad))
             repaired_s = solve_harmonic_patch_repair(patches, sections, bad_idx)
             delta_h = patches[bad_idx] @ (repaired_s - sections[bad_idx])
             h_repaired = h_vec + delta_h
