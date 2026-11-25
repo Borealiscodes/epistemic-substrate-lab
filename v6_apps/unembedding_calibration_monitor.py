@@ -2,15 +2,15 @@
 """
 Track 4 (v6_apps/unembedding_calibration_monitor.py):
 - Audits the penultimate-to-final hidden state transition (L_{N-2} -> L_{N-1})
-  and pre-softmax Aitchison clr norm to detect radial simplex boundary blowup
-  and uncalibrated confabulation spikes without softmax saturation blindness.
+  and exact pre-softmax centered logits z_clr = z - mean(z) (mathematically
+  identical to Aitchison clr(softmax(z)) without IEEE-754 1e-15 floor clipping).
+- Detects radial simplex boundary blowup and uncalibrated confabulation spikes.
 """
 
 import numpy as np
 from v6_core.spherepop_runtime import (
     SpherepopSession,
     canonical_q16_sha256,
-    clr,
     softmax,
 )
 
@@ -33,24 +33,25 @@ def run_calibration_audit(
 
     probs = softmax(logits)
     max_prob = float(np.max(probs))
-    clr_vec = clr(probs)
-    clr_norm = float(np.linalg.norm(clr_vec))
+    # Exact pre-softmax Aitchison clr vector: avoids exp/log underflow clipping
+    exact_clr_vec = logits - np.mean(logits)
+    exact_clr_norm = float(np.linalg.norm(exact_clr_vec))
 
-    calibrated = bool(twist_dev <= max_twist_deviation and clr_norm <= max_clr_norm)
+    calibrated = bool(twist_dev <= max_twist_deviation and exact_clr_norm <= max_clr_norm)
     session = SpherepopSession(
         scope=f"track4_unembedding_calibration_{label}",
         base_version=canonical_q16_sha256(h_final),
     )
     session.record_verify(
-        "unembedding_twist_and_clr_dispersion",
+        "unembedding_twist_and_exact_clr_dispersion",
         calibrated,
-        canonical_q16_sha256(clr_vec[:256]),
+        canonical_q16_sha256(exact_clr_vec[:256]),
         {
             "terminal_twist_rad": twist_rad,
             "reference_twist_rad": reference_twist_rad,
             "twist_deviation_rad": twist_dev,
             "softmax_max_prob": max_prob,
-            "aitchison_clr_norm": clr_norm,
+            "exact_aitchison_clr_norm": exact_clr_norm,
         },
     )
 
@@ -60,7 +61,7 @@ def run_calibration_audit(
         summary={
             "unembedding_calibrated": calibrated,
             "terminal_twist_rad": twist_rad,
-            "aitchison_clr_norm": clr_norm,
+            "exact_aitchison_clr_norm": exact_clr_norm,
             "softmax_max_prob": max_prob,
         },
     )
