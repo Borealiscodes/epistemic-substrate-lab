@@ -1,16 +1,5 @@
 #!/usr/bin/env python3
-"""
-Experiment E (exp5_multilayer_sae_holonomy.py):
-- Extracts all N transformer hidden layers (L_0 -> L_{N-1}) from Qwen/Qwen2.5-0.5B
-  across objective baseline, Golden Gate Bridge persona, and dual-concept prompts.
-- Computes layer-by-layer orthogonal Procrustes transport operators R_{t -> t+1} in O(k)
-  and closed depth-loop holonomy ||H_depth - I_k||_2.
-- Tests polysemantic multi-atom SAE-style covers vs. single-atom covers on dual-concept
-  prompts, and verifies V5DepthChainGate multi-layer Spherepop refusal propagation.
-"""
-
 import json
-import os
 import numpy as np
 
 
@@ -33,7 +22,6 @@ def extract_all_layers(model_id: str = "Qwen/Qwen2.5-0.5B") -> dict:
         for label, text in prompts.items():
             inputs = tokenizer(text, return_tensors="pt")
             out = model(**inputs, output_hidden_states=True)
-            # out.hidden_states has embedding + N transformer layers; take transformer layers 1..N
             layers = [
                 h[0, -1, :].cpu().numpy().astype(np.float64)
                 for h in out.hidden_states[1:]
@@ -51,19 +39,16 @@ def extract_all_layers(model_id: str = "Qwen/Qwen2.5-0.5B") -> dict:
 
 
 def orthogonal_procrustes_step(u: np.ndarray, v: np.ndarray) -> np.ndarray:
-    """Finds R in O(k) minimizing ||R u - v||_2 via rank-1 outer product SVD."""
     u_norm = u / (np.linalg.norm(u) + 1e-12)
     v_norm = v / (np.linalg.norm(v) + 1e-12)
     M = np.outer(v_norm, u_norm)
     U, _, Vt = np.linalg.svd(M)
-    R = U @ Vt
-    return R
+    return U @ Vt
 
 
 def compute_depth_holonomy(traj_steer: list[np.ndarray], traj_base: list[np.ndarray], P: np.ndarray) -> dict:
-    """Computes closed-loop depth holonomy across layers 0 -> N-1 -> 0 inside subspace P."""
     n_layers = len(traj_steer)
-    k = int(P.shape[1])
+    k = int(P.shape[-1])
 
     s_steer = [P.T @ h for h in traj_steer]
     s_base = [P.T @ h for h in traj_base]
@@ -71,14 +56,15 @@ def compute_depth_holonomy(traj_steer: list[np.ndarray], traj_base: list[np.ndar
     H = np.eye(k, dtype=np.float64)
     per_layer_step_angles = []
 
-    # Forward pass along steered trajectory: t -> t+1
     for t in range(n_layers - 1):
         R_fwd = orthogonal_procrustes_step(s_steer[t], s_steer[t + 1])
         H = R_fwd @ H
-        cos_sim = float(np.dot(s_steer[t], s_steer[t + 1]) / (np.linalg.norm(s_steer[t]) * np.linalg.norm(s_steer[t + 1]) + 1e-12))
+        cos_sim = float(
+            np.dot(s_steer[t], s_steer[t + 1])
+            / (np.linalg.norm(s_steer[t]) * np.linalg.norm(s_steer[t + 1]) + 1e-12)
+        )
         per_layer_step_angles.append(round(float(np.arccos(np.clip(cos_sim, -1.0, 1.0))), 6))
 
-    # Return pass along baseline trajectory: t+1 -> t
     for t in reversed(range(n_layers - 1)):
         R_rev = orthogonal_procrustes_step(s_base[t + 1], s_base[t])
         H = R_rev @ H
@@ -95,12 +81,11 @@ def compute_depth_holonomy(traj_steer: list[np.ndarray], traj_base: list[np.ndar
 
 
 def build_multi_atom_patches(atom_vectors: list[np.ndarray], k: int, n_patches: int, seed: int) -> list[np.ndarray]:
-    """Orthonormal patches seeded with multiple active feature atoms (polysemantic SAE cover)."""
     first_atom = next(iter(atom_vectors))
     D = int(first_atom.size)
     rng = np.random.default_rng(seed)
     atom_mat = np.column_stack([v / (np.linalg.norm(v) + 1e-12) for v in atom_vectors])
-    n_atoms = int(atom_mat.shape[1])
+    n_atoms = int(atom_mat.shape[-1])
 
     patches = []
     for _ in range(n_patches):
@@ -116,7 +101,7 @@ def build_multi_atom_patches(atom_vectors: list[np.ndarray], k: int, n_patches: 
 def coboundary_norm(x: np.ndarray, patches: list[np.ndarray], perturb_idx: int = -1) -> float:
     n_patches = len(patches)
     first_p = next(iter(patches))
-    k = int(first_p.shape[1])
+    k = int(first_p.shape[-1])
     rng = np.random.default_rng(505)
 
     sections = []
@@ -145,12 +130,11 @@ def main() -> None:
     traj_bridge = data["trajectories"]["bridge_persona"]
     traj_poly = data["trajectories"]["polysemantic_dual"]
 
-    # 1. Depth-wise Procrustes Holonomy inside an isometric basis spanning key layers
     mid_idx = n_layers // 2
-    P_depth = next(iter(build_multi_atom_patches([traj_base[mid_idx], traj_bridge[mid_idx]], k, 1, seed=77)))[0]
+    depth_patch_list = build_multi_atom_patches([traj_base[mid_idx], traj_bridge[mid_idx]], k, 1, seed=77)
+    P_depth = next(iter(depth_patch_list))
     depth_telemetry = compute_depth_holonomy(traj_bridge, traj_base, P_depth)
 
-    # 2. Polysemantic Multi-Atom vs Single-Atom Cover at Mid-Layer on Dual-Concept Prompt
     h_poly_mid = traj_poly[mid_idx]
     single_atom_patches = build_multi_atom_patches([traj_bridge[mid_idx]], k, n_patches, seed=101)
     multi_atom_patches = build_multi_atom_patches(
@@ -160,7 +144,6 @@ def main() -> None:
     err_single = coboundary_norm(h_poly_mid, single_atom_patches)
     err_multi = coboundary_norm(h_poly_mid, multi_atom_patches)
 
-    # 3. Multi-Layer V5DepthChainGate Simulation (Clean Chain vs Layer 12 Perturbed Chain)
     clean_chain_flags = []
     perturbed_chain_flags = []
     perturbed_layer_norms = {}
