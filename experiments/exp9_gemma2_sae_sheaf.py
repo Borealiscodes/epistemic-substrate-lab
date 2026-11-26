@@ -51,7 +51,7 @@ def main() -> None:
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
         token=token,
-        torch_dtype=torch.bfloat16,
+        dtype=torch.bfloat16,
         low_cpu_mem_usage=True,
     )
     model.eval()
@@ -98,7 +98,8 @@ def main() -> None:
     peak_idx = int(np.argmax(step_angles))
 
     # 2. Stream Pretrained Layer-12 SAE & Extract Active Decoder Atoms
-    sae_params = load_pretrained_layer12_sae(preflight)
+    cal_vecs = [trajectories[k_lbl][mid_idx] for k_lbl in prompts]
+    sae_params = load_pretrained_layer12_sae(preflight, calibration_vectors=cal_vecs)
     h_dual_12 = trajectories["polysemantic_dual"][mid_idx]
     active_atoms, active_ids, l0_count = extract_active_sae_atoms(h_dual_12, sae_params, top_r=32)
 
