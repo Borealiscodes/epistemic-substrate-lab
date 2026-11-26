@@ -1,0 +1,11 @@
+{
+  "experiment": "Experiment_I_V9_Gemma2_2B_GemmaScope_Sheaf_Audit",
+  "preflight_gate": {
+    "hf_token_present": false,
+    "estimated_footprint_gb": 5.83,
+    "runner_budget_gb": 12.0,
+    "mem_within_budget": true,
+    "pre_flight_disposition": "REFUSE:MISSING_GATED_MODEL_TOKEN"
+  },
+  "terminal_disposition": "REFUSE:MISSING_GATED_MODEL_TOKEN"
+}

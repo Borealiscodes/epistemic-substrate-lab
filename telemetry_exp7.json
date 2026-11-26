@@ -1,0 +1,35 @@
+{
+  "experiment": "Experiment_G_V7_Self_Healing_Sheaf_Repair",
+  "model_id": "Qwen/Qwen2.5-0.5B",
+  "layer_index": 12,
+  "sheaf_repair_metrics": {
+    "clean_coboundary_norm": 7.235129040019246e-15,
+    "corrupted_patch0_coboundary_norm": 4.601681003420423,
+    "repaired_coboundary_norm": 6.948815349954243e-15,
+    "patch0_section_recovery_l2_error": 2.8436858387379896e-15
+  },
+  "spherepop_repair_transcript": {
+    "step1_phantom_target": {
+      "op": "REFUSE",
+      "primary": "UNESTABLISHED",
+      "head": "4b8f9f5e1f50c16d72c63cb14952e4180a420464eb9c51035ea5f110d1e0a3f6",
+      "length": 1,
+      "burden": 70
+    },
+    "step2_budget_exceeded": {
+      "op": "REFUSE",
+      "primary": "MAINTENANCE_BUDGET_EXCEEDED",
+      "head": "4b8f9f5e1f50c16d72c63cb14952e4180a420464eb9c51035ea5f110d1e0a3f6",
+      "length": 1,
+      "burden": 70
+    },
+    "step3_established_harmonic_repair": {
+      "op": "COLLAPSE",
+      "primary": "ACCEPTABLE",
+      "head": "0a25e4287e8881f955977a706d7dd8b18bde75b113ee8d58480d9b9813def362",
+      "length": 2,
+      "burden": 70,
+      "post_repair_coboundary_norm": 6.948815349954243e-15
+    }
+  }
+}

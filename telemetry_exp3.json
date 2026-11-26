@@ -1,0 +1,189 @@
+{
+  "experiment": "Experiment_C_Spherepop_SAE_vs_QR_Sheaf_Audit",
+  "ambient_dim_D": 256,
+  "superposed_features_F": 2048,
+  "runs": [
+    {
+      "cover_type": "random_qr_unperturbed",
+      "local_intervention_applied": false,
+      "coboundary_norm": 2.719468183846808,
+      "terminal_disposition": "REFUSE",
+      "event_count": 9,
+      "events": [
+        {
+          "op": "POP",
+          "scope": "parent_random_qr_unperturbed",
+          "base_version": "6a9027bca3dc0653"
+        },
+        {
+          "op": "BIND",
+          "scope": "parent_random_qr_unperturbed",
+          "authority": "NDH_SEALED_LAYER"
+        },
+        {
+          "op": "VERIFY",
+          "scope": "sub_patch_0",
+          "local_valid": true,
+          "section_hash": "a16461da927ca535"
+        },
+        {
+          "op": "VERIFY",
+          "scope": "sub_patch_1",
+          "local_valid": true,
+          "section_hash": "360162c35196ae48"
+        },
+        {
+          "op": "VERIFY",
+          "scope": "sub_patch_2",
+          "local_valid": true,
+          "section_hash": "084b2f4cb84f3e85"
+        },
+        {
+          "op": "VERIFY",
+          "scope": "sub_patch_3",
+          "local_valid": true,
+          "section_hash": "669ed87c34b8abdf"
+        },
+        {
+          "op": "VERIFY",
+          "scope": "sub_patch_4",
+          "local_valid": true,
+          "section_hash": "77b846ad35e57457"
+        },
+        {
+          "op": "VERIFY",
+          "scope": "sub_patch_5",
+          "local_valid": true,
+          "section_hash": "2fd09cd3a52f3be3"
+        },
+        {
+          "op": "REFUSE",
+          "scope": "parent_random_qr_unperturbed",
+          "reason": "COBOUNDARY_OBSTRUCTION",
+          "coboundary_norm": 2.719468183846808
+        }
+      ]
+    },
+    {
+      "cover_type": "sae_guided_unperturbed",
+      "local_intervention_applied": false,
+      "coboundary_norm": 4.451308382841544e-15,
+      "terminal_disposition": "COLLAPSE",
+      "event_count": 9,
+      "events": [
+        {
+          "op": "POP",
+          "scope": "parent_sae_guided_unperturbed",
+          "base_version": "6a9027bca3dc0653"
+        },
+        {
+          "op": "BIND",
+          "scope": "parent_sae_guided_unperturbed",
+          "authority": "NDH_SEALED_LAYER"
+        },
+        {
+          "op": "VERIFY",
+          "scope": "sub_patch_0",
+          "local_valid": true,
+          "section_hash": "bad7e350638235d9"
+        },
+        {
+          "op": "VERIFY",
+          "scope": "sub_patch_1",
+          "local_valid": true,
+          "section_hash": "f25722034a7bdb07"
+        },
+        {
+          "op": "VERIFY",
+          "scope": "sub_patch_2",
+          "local_valid": true,
+          "section_hash": "14529a5418843555"
+        },
+        {
+          "op": "VERIFY",
+          "scope": "sub_patch_3",
+          "local_valid": true,
+          "section_hash": "f099f86ab6d0c058"
+        },
+        {
+          "op": "VERIFY",
+          "scope": "sub_patch_4",
+          "local_valid": true,
+          "section_hash": "543c32cfc5cbac8d"
+        },
+        {
+          "op": "VERIFY",
+          "scope": "sub_patch_5",
+          "local_valid": true,
+          "section_hash": "860fbf98cc9c1ea0"
+        },
+        {
+          "op": "COLLAPSE",
+          "scope": "parent_sae_guided_unperturbed",
+          "coboundary_norm": 4.451308382841544e-15
+        }
+      ]
+    },
+    {
+      "cover_type": "sae_guided_local_intervention",
+      "local_intervention_applied": true,
+      "coboundary_norm": 4.739973092311898,
+      "terminal_disposition": "REFUSE",
+      "event_count": 9,
+      "events": [
+        {
+          "op": "POP",
+          "scope": "parent_sae_guided_local_intervention",
+          "base_version": "6a9027bca3dc0653"
+        },
+        {
+          "op": "BIND",
+          "scope": "parent_sae_guided_local_intervention",
+          "authority": "NDH_SEALED_LAYER"
+        },
+        {
+          "op": "VERIFY",
+          "scope": "sub_patch_0",
+          "local_valid": true,
+          "section_hash": "ea86351d07a2338c"
+        },
+        {
+          "op": "VERIFY",
+          "scope": "sub_patch_1",
+          "local_valid": true,
+          "section_hash": "f25722034a7bdb07"
+        },
+        {
+          "op": "VERIFY",
+          "scope": "sub_patch_2",
+          "local_valid": true,
+          "section_hash": "14529a5418843555"
+        },
+        {
+          "op": "VERIFY",
+          "scope": "sub_patch_3",
+          "local_valid": true,
+          "section_hash": "f099f86ab6d0c058"
+        },
+        {
+          "op": "VERIFY",
+          "scope": "sub_patch_4",
+          "local_valid": true,
+          "section_hash": "543c32cfc5cbac8d"
+        },
+        {
+          "op": "VERIFY",
+          "scope": "sub_patch_5",
+          "local_valid": true,
+          "section_hash": "860fbf98cc9c1ea0"
+        },
+        {
+          "op": "REFUSE",
+          "scope": "parent_sae_guided_local_intervention",
+          "reason": "COBOUNDARY_OBSTRUCTION",
+          "coboundary_norm": 4.739973092311898
+        }
+      ]
+    }
+  ]
+}
