@@ -358,3 +358,43 @@ theorem single_patch_established_repair_collapses
   simp [evaluateSelfHealingPass, h_one, h_est, h_bud, h_cob]
 
 end V8SelfHealingAndConsensusGate
+
+namespace V9GemmaScopeGate
+
+open SpherepopSheafBridge
+
+/-- Operational state for v9 Gemma-2-2B (BF16) + Gemma Scope SAE streaming
+    and coupled ambient sheaf repair. -/
+structure V9GemmaDeploymentState where
+  hfTokenPresent : Bool
+  bf16MemoryWithinBudget : Bool
+  saeSliceVerified : Bool
+  coupledAmbientCoboundaryZero : Bool
+  deriving DecidableEq, Repr
+
+def evaluateV9GemmaPipeline (s : V9GemmaDeploymentState) : Disposition :=
+  if !s.hfTokenPresent then
+    Disposition.refused "MISSING_GATED_MODEL_TOKEN"
+  else if !s.bf16MemoryWithinBudget then
+    Disposition.refused "HARDWARE_MEMORY_EXCEEDED"
+  else if !s.saeSliceVerified then
+    Disposition.refused "SAE_SLICE_INTEGRITY_FAILURE"
+  else if !s.coupledAmbientCoboundaryZero then
+    Disposition.refused "COUPLED_AMBIENT_OBSTRUCTION"
+  else
+    Disposition.collapsed
+
+theorem v9_gemma_collapses_iff_all_gates_pass (s : V9GemmaDeploymentState) :
+    evaluateV9GemmaPipeline s = Disposition.collapsed ↔
+      (s.hfTokenPresent = true ∧
+       s.bf16MemoryWithinBudget = true ∧
+       s.saeSliceVerified = true ∧
+       s.coupledAmbientCoboundaryZero = true) := by
+  unfold evaluateV9GemmaPipeline
+  by_cases h1 : s.hfTokenPresent = true <;>
+  by_cases h2 : s.bf16MemoryWithinBudget = true <;>
+  by_cases h3 : s.saeSliceVerified = true <;>
+  by_cases h4 : s.coupledAmbientCoboundaryZero = true <;>
+  simp [h1, h2, h3, h4]
+
+end V9GemmaScopeGate
