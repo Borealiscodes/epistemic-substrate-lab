@@ -69,7 +69,7 @@ jobs:
       - name: Install Python scientific, transformer & Hugging Face Hub dependencies
         run: |
           pip install --upgrade pip
-          pip install numpy torch transformers huggingface_hub
+          pip install numpy torch transformers huggingface_hub safetensors
       - name: Install Julia StaticArrays & verify 0-byte allocation across all kernels
         run: |
           julia -e 'using Pkg; Pkg.add("StaticArrays"); Pkg.precompile()'

@@ -1,16 +1,25 @@
 #!/usr/bin/env python3
+"""
+Experiment I (v9.1 Dual-Mode Pretrained SAE & Coupled Ambient Repair Audit):
+- Runs immediately with ZERO account/token using ungated EleutherAI/pythia-1.4b
+  (24 layers, D=2048, BF16) + pretrained EleutherAI/sae-pythia-1.4b-deduped-32k
+  (32,768 features), or upgrades automatically to google/gemma-2-2b when HF_TOKEN
+  is supplied.
+"""
+
 import json
 import os
 import numpy as np
 import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from v6_apps.steering_firewall import build_calibrated_multi_atom_patches
 from v6_core.spherepop_runtime import SpherepopSession, canonical_q16_sha256, orthogonal_procrustes_step
 from v9_apps.coupled_ambient_repair import compute_ambient_coboundary, solve_coupled_ambient_repair
 from v9_apps.gemma_scope_streamer import (
-    evaluate_gemma2_preflight,
-    extract_active_jumprelu_atoms,
-    load_gemma_scope_layer12_sae,
+    evaluate_substrate_preflight,
+    extract_active_sae_atoms,
+    load_pretrained_layer12_sae,
 )
 
 
@@ -25,21 +34,19 @@ def build_random_qr_patches(D: int, k: int, n_patches: int) -> list[np.ndarray]:
 
 def main() -> None:
     budget_gb = float(os.environ.get("RUNNER_RAM_BUDGET_GB", "12.0"))
-    preflight = evaluate_gemma2_preflight(runner_budget_gb=budget_gb, hf_token_env="HF_TOKEN")
+    preflight = evaluate_substrate_preflight(runner_budget_gb=budget_gb, hf_token_env="HF_TOKEN")
 
     if preflight["pre_flight_disposition"] != "ADMIT":
-        report = {
-            "experiment": "Experiment_I_V9_Gemma2_2B_GemmaScope_Sheaf_Audit",
+        print(json.dumps({
+            "experiment": "Experiment_I_V9_1_Pretrained_SAE_Sheaf_Audit",
             "preflight_gate": preflight,
             "terminal_disposition": preflight["pre_flight_disposition"],
-        }
-        print(json.dumps(report, indent=2))
+        }, indent=2))
         return
 
-    from transformers import AutoModelForCausalLM, AutoTokenizer
+    token = os.environ.get("HF_TOKEN", "").strip() or None
+    model_id = preflight["model_id"]
 
-    token = os.environ["HF_TOKEN"].strip()
-    model_id = "google/gemma-2-2b"
     tokenizer = AutoTokenizer.from_pretrained(model_id, token=token)
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
@@ -71,6 +78,7 @@ def main() -> None:
     k = 64
     n_patches = 6
 
+    # 1. Full-Depth Geodesic SO(64) Trajectory Holonomy & Terminal Twist Profile
     P_depth = next(iter(build_calibrated_multi_atom_patches(
         [trajectories["baseline"][mid_idx], trajectories["bridge_persona"][mid_idx]], k=k, n_patches=1, seed=91
     )))
@@ -89,16 +97,18 @@ def main() -> None:
     depth_holonomy = float(np.linalg.norm(H - np.eye(k), ord=2))
     peak_idx = int(np.argmax(step_angles))
 
-    sae_params = load_gemma_scope_layer12_sae(token=token)
+    # 2. Stream Pretrained Layer-12 SAE & Extract Active Decoder Atoms
+    sae_params = load_pretrained_layer12_sae(preflight)
     h_dual_12 = trajectories["polysemantic_dual"][mid_idx]
-    active_atoms, active_ids, l0_count = extract_active_jumprelu_atoms(h_dual_12, sae_params, top_r=32)
+    active_atoms, active_ids, l0_count = extract_active_sae_atoms(h_dual_12, sae_params, top_r=32)
 
     random_patches = build_random_qr_patches(D, k, n_patches)
-    gemma_scope_patches = build_calibrated_multi_atom_patches(active_atoms, k=k, n_patches=n_patches, seed=606)
+    pretrained_sae_patches = build_calibrated_multi_atom_patches(active_atoms, k=k, n_patches=n_patches, seed=606)
 
     err_random = compute_ambient_coboundary(h_dual_12, random_patches)
-    err_gemma_scope = compute_ambient_coboundary(h_dual_12, gemma_scope_patches)
+    err_pretrained_sae = compute_ambient_coboundary(h_dual_12, pretrained_sae_patches)
 
+    # 3. Coupled Ambient Least-Squares Repair Test (eliminating v8.1 overlap leakage)
     coupled_patches = build_calibrated_multi_atom_patches(
         active_atoms[:16] + [h_dual_12], k=k, n_patches=n_patches, seed=707
     )
@@ -115,7 +125,7 @@ def main() -> None:
     err_after_coupled_repair = compute_ambient_coboundary(h_repaired, coupled_patches)
 
     session = SpherepopSession(
-        scope="v9_gemma2_2b_coupled_ambient_audit",
+        scope="v9_1_pretrained_sae_coupled_ambient_audit",
         base_version=canonical_q16_sha256(h_dual_12),
     )
     repair_ok = bool(err_after_coupled_repair <= 1e-6)
@@ -136,27 +146,28 @@ def main() -> None:
     )
 
     report = {
-        "experiment": "Experiment_I_V9_Gemma2_2B_GemmaScope_Sheaf_Audit",
+        "experiment": "Experiment_I_V9_1_Pretrained_SAE_Sheaf_Audit",
         "model_id": model_id,
         "dtype": "bfloat16",
         "num_layers": n_layers,
         "hidden_dim_D": D,
         "preflight_gate": preflight,
-        "depth_holonomy_26_layers": {
+        "depth_holonomy_full_pass": {
             "geodesic_closed_depth_holonomy": depth_holonomy,
             "peak_angular_twist_transition": f"L_{peak_idx} -> L_{peak_idx + 1}",
             "peak_angular_twist_rad": step_angles[peak_idx],
             "layer_step_angles_rad": step_angles,
         },
-        "gemma_scope_sae_cover_audit": {
+        "pretrained_sae_cover_audit": {
             "sae_repo": sae_params["repo_id"],
             "sae_file": sae_params["filename"],
+            "activation_type": sae_params["activation_type"],
             "sae_num_features_F": sae_params["num_features_F"],
-            "jumprelu_l0_active_features": l0_count,
+            "active_features_above_threshold": l0_count,
             "top_5_active_feature_ids": active_ids[:5],
             "random_qr_coboundary_norm": err_random,
-            "gemma_scope_top32_coboundary_norm": err_gemma_scope,
-            "coboundary_reduction_factor": round(err_random / (err_gemma_scope + 1e-15), 2),
+            "pretrained_sae_top32_coboundary_norm": err_pretrained_sae,
+            "coboundary_reduction_factor": round(err_random / (err_pretrained_sae + 1e-15), 2),
         },
         "coupled_ambient_repair_audit": {
             "pre_tamper_coboundary": err_before_tamper,
