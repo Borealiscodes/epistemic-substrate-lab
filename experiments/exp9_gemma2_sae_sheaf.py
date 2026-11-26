@@ -1,17 +1,4 @@
 #!/usr/bin/env python3
-"""
-Experiment I (exp9_gemma2_sae_sheaf.py):
-- Audits google/gemma-2-2b (26 layers, D=2304, BF16) + pretrained Gemma Scope
-  JumpReLU SAE (google/gemma-scope-2b-pt-res, layer 12, 16k features).
-- Evaluates:
-  1. Pre-flight V9GemmaScopeGate (HF_TOKEN + llmfit BF16 RAM <= 12.0 GB).
-  2. Full 26-layer geodesic SO(64) trajectory holonomy & terminal L_24 -> L_25
-     unembedding twist profile.
-  3. Pretrained Gemma Scope JumpReLU active atom cover vs. random QR cover on
-     Layer-12 activations.
-  4. Coupled ambient least-squares sheaf repair eliminating v8.1 overlap leakage.
-"""
-
 import json
 import os
 import numpy as np
@@ -25,6 +12,15 @@ from v9_apps.gemma_scope_streamer import (
     extract_active_jumprelu_atoms,
     load_gemma_scope_layer12_sae,
 )
+
+
+def build_random_qr_patches(D: int, k: int, n_patches: int) -> list[np.ndarray]:
+    patches = []
+    for i in range(n_patches):
+        mat = np.random.default_rng(500 + i).standard_normal((D, k))
+        q_rand, _ = np.linalg.qr(mat, mode="reduced")
+        patches.append(q_rand)
+    return patches
 
 
 def main() -> None:
@@ -70,12 +66,11 @@ def main() -> None:
             ]
 
     n_layers = len(trajectories["baseline"])
-    D = int(trajectories["baseline"][0].size)
+    D = int(next(iter(trajectories["baseline"])).size)
     mid_idx = 12
     k = 64
     n_patches = 6
 
-    # 1. 26-Layer Geodesic SO(64) Trajectory Holonomy & Terminal Twist Profile
     P_depth = next(iter(build_calibrated_multi_atom_patches(
         [trajectories["baseline"][mid_idx], trajectories["bridge_persona"][mid_idx]], k=k, n_patches=1, seed=91
     )))
@@ -94,22 +89,16 @@ def main() -> None:
     depth_holonomy = float(np.linalg.norm(H - np.eye(k), ord=2))
     peak_idx = int(np.argmax(step_angles))
 
-    # 2. Stream Pretrained Gemma Scope Layer-12 JumpReLU SAE & Extract Active Atoms
     sae_params = load_gemma_scope_layer12_sae(token=token)
     h_dual_12 = trajectories["polysemantic_dual"][mid_idx]
     active_atoms, active_ids, l0_count = extract_active_jumprelu_atoms(h_dual_12, sae_params, top_r=32)
 
-    random_patches = [
-        np.linalg.qr(np.random.default_rng(500 + i).standard_normal((D, k)))[0]
-        for i in range(n_patches)
-    ]
+    random_patches = build_random_qr_patches(D, k, n_patches)
     gemma_scope_patches = build_calibrated_multi_atom_patches(active_atoms, k=k, n_patches=n_patches, seed=606)
 
     err_random = compute_ambient_coboundary(h_dual_12, random_patches)
     err_gemma_scope = compute_ambient_coboundary(h_dual_12, gemma_scope_patches)
 
-    # 3. Coupled Ambient Least-Squares Repair Test (eliminating v8.1 overlap leakage)
-    # Build cover spanning active SAE atoms + ambient residual so baseline coboundary is machine zero
     coupled_patches = build_calibrated_multi_atom_patches(
         active_atoms[:16] + [h_dual_12], k=k, n_patches=n_patches, seed=707
     )
@@ -117,8 +106,7 @@ def main() -> None:
     err_before_tamper = compute_ambient_coboundary(h_dual_12, coupled_patches)
 
     rng = np.random.default_rng(909)
-    # Inject corruption strictly along patch 0's subspace
-    h_corrupt = h_dual_12 + (coupled_patches[0] @ (0.5 * rng.standard_normal(k)))
+    h_corrupt = h_dual_12 + (next(iter(coupled_patches)) @ (0.5 * rng.standard_normal(k)))
     err_corrupted = compute_ambient_coboundary(h_corrupt, coupled_patches)
 
     h_repaired = solve_coupled_ambient_repair(
@@ -174,9 +162,11 @@ def main() -> None:
             "pre_tamper_coboundary": err_before_tamper,
             "corrupted_coboundary": err_corrupted,
             "post_coupled_repair_coboundary": err_after_coupled_repair,
-"terminal_disposition": final_transcript["terminal_disposition"],
-},
-}
-print(json.dumps(report, indent=2))
-if name == "main":
-main()
+            "terminal_disposition": final_transcript["terminal_disposition"],
+        },
+    }
+    print(json.dumps(report, indent=2))
+
+
+if __name__ == "__main__":
+    main()
